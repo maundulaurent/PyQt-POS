@@ -16,6 +16,8 @@ class POSSystem(QMainWindow):
 
 
         self.setWindowTitle("Peter POS")
+        
+        
         icon = QIcon('home.png')
         self.setWindowIcon(QIcon(icon))
         self.setGeometry(100, 50, 1200, 800)

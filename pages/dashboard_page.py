@@ -10,7 +10,6 @@ class DashboardPage(QWidget):
         self.setLayout(self.main_layout)
 
         self.setStyleSheet("""
-
             QWidget {
                 background-color: #2b2b2b;
                 color: #fff;
@@ -19,7 +18,7 @@ class DashboardPage(QWidget):
                 font-size: 16px;
             }
             QPushButton {
-                background-color: #4CAF50;
+                background-color: #4e5052;
                 color: white;
                 font-size: 14px;
                 padding: 10px;
@@ -27,7 +26,7 @@ class DashboardPage(QWidget):
                 border-radius: 5px;
             }
             QPushButton:hover {
-                background-color: #45a049;
+                background-color: #4CAF50;
             }
             QTableWidget {
                 background-color: #f9f9f9;
@@ -59,15 +58,18 @@ class DashboardPage(QWidget):
         self.sidebar = QWidget()
         self.sidebar_layout = QVBoxLayout()
         self.sidebar.setLayout(self.sidebar_layout)
-        # self.sidebar.setStyleSheet("background-color: #2E2E2E;")
         self.sidebar.setStyleSheet("background-color: #4e5052; border-radius: 6px;")
         self.sidebar.setFixedWidth(250)
         self.main_layout.addWidget(self.sidebar)
 
+        # Adjust the margins and spacing here
+        self.sidebar_layout.setContentsMargins(10, 10, 10, 10)  # Add some margin around the layout
+        self.sidebar_layout.setSpacing(5)  # Adjust vertical spacing between buttons
 
-        self.add_sidebar_button("Dashboard")
-        self.add_sidebar_button("Products")
-        self.add_sidebar_button("Category")
+        # Add sidebar buttons
+        self.add_sidebar_button("Dashboard", "images/pyimg.png")
+        self.add_sidebar_button("Products", "images/pyimg.png")
+        self.add_sidebar_button("Category", "images/home.png")
         self.add_sidebar_button("SubCategory")
         self.add_sidebar_button("Brands")
         self.add_sidebar_button("Order")
@@ -85,7 +87,6 @@ class DashboardPage(QWidget):
         # Header Section
         header_layout = QHBoxLayout()
         self.content_layout.addLayout(header_layout)
-        
 
         self.header = QLabel("Dashboard")
         self.header.setStyleSheet("font-size: 24px; font-weight: bold; margin-bottom: 20px;")
@@ -100,24 +101,59 @@ class DashboardPage(QWidget):
             border: 1px solid #ddd;
             margin-left: 16px;
             margin-bottom: 20px;
-
         """)
         header_layout.addWidget(self.search_bar)
 
+        # before quick actions
+        before_quick = QHBoxLayout()
+        self.setLayout(before_quick)
 
-        
+        card = QFrame()
+        card.setObjectName("card")
+        card_layout = QVBoxLayout()
+        card.setLayout(card_layout)
+        card.setStyleSheet("""
+            #card {
+                background-color: #2b2b2b;
+                border-radius: 10px;
+                padding: 20px;
+                margin: 10px;
+                min-width: 200px;
+                max-width: 300px;
+                height: 150px;
+            }
+        """)
+
+        # card title
+        title_label = QLabel("Recently Sold")
+        title_label.setStyleSheet("font-size:16px; color: #A8A8A8;")
+        card_layout.addWidget(title_label)
+
+        # sold items details
+
+        recently_sold = QLabel("New Americano Perfume")
+        recently_sold.setStyleSheet("font-size: 12px; color: #ffffff ")
+        card_layout.addWidget(recently_sold)
+
+        self.content_layout.addWidget(card, alignment=Qt.AlignTop)
 
         # Quick actions section
         self.quick_actions_layout = QGridLayout()
         self.content_layout.addLayout(self.quick_actions_layout)
 
-        self.new_sale_button = QPushButton("New Sale")
+        self.new_sale_button = QLabel("New Sale")
+        self.new_sale_button.setAlignment(Qt.AlignCenter)
+        self.new_sale_button.setStyleSheet("""
+            background: #4e5052;
+            border-radius: 6px;
+            font-weight:bold;
+            font-size: 20px;
+        """)
         self.add_product_button = QPushButton("Add Product")
 
         # Add widgets to the grid layout
         self.quick_actions_layout.addWidget(self.new_sale_button, 0, 0)  # Row 0, Column 0
         self.quick_actions_layout.addWidget(self.add_product_button, 0, 1, 1, 2)  # Row 0, Column 1, Span 1 row, 2 columns
-
 
         # Recent transactions section
         self.recent_transactions_label = QLabel("Recent Transactions")
@@ -136,9 +172,6 @@ class DashboardPage(QWidget):
         self.notifications_label.setStyleSheet("font-size: 18px; font-weight: bold; margin-top: 20px;")
         self.content_layout.addWidget(self.notifications_label)
 
-        # self.notifications_card = self.create_card("Notifications", "No new notifications")
-        # self.content_layout.addWidget(self.notifications_card)
-
         # Top selling products section
         self.top_selling_label = QLabel("Top Selling Products")
         self.top_selling_label.setStyleSheet("font-size: 18px; font-weight: bold; margin-top: 20px;")
@@ -151,21 +184,32 @@ class DashboardPage(QWidget):
         self.top_selling_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.content_layout.addWidget(self.top_selling_table)
 
+    def add_sidebar_button(self, text, icon_path=None):
+        button = QPushButton()
+        button_layout = QHBoxLayout()
+        button.setLayout(button_layout)
 
-    def add_sidebar_button(self, text):
-        button = QPushButton(text)
+        if icon_path:
+            icon_label = QLabel()
+            pixmap = QPixmap(icon_path)
+            pixmap = pixmap.scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            icon_label.setPixmap(pixmap)
+            button_layout.addWidget(icon_label, alignment=Qt.AlignLeft)  # Align icon to the left
+
+        text_label = QLabel(text)
+        button_layout.addWidget(text_label, alignment=Qt.AlignLeft)  # Align text to the left
+
+        button_layout.setContentsMargins(0, 0, 0, 0)
+        button_layout.setSpacing(5)  # Adjust spacing between icon and text
+
         button.setStyleSheet("""
             text-align: left;
             padding: 8px 12px;
             margin: 0; 
             border: none;  
             font-size: 16px;        
-
         """)
+
         button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.sidebar_layout.addWidget(button)
-        self.sidebar_layout.setSpacing(0)  # Adjust vertical spacing between buttons
         self.sidebar_layout.setAlignment(Qt.AlignTop)  # Align buttons at the top of the layout
-
-
-
