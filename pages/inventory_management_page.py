@@ -51,7 +51,7 @@ class InventoryManagementPage(QWidget):
                 }
             """)
             self.nav_layout.addWidget(button)
-
+        
         # Content layout
         self.content_layout = QVBoxLayout()
         self.main_layout.addLayout(self.content_layout)
@@ -61,7 +61,7 @@ class InventoryManagementPage(QWidget):
         self.heading_text.addWidget(QPushButton("Inventory Management Page"))
         self.content_layout.addLayout(self.heading_text)
 
-# Toolbar
+        # Toolbar
         self.toolbar_layout = QHBoxLayout()
         self.content_layout.addLayout(self.toolbar_layout)
 
