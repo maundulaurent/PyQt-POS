@@ -16,7 +16,7 @@ class POSSystem(QMainWindow):
         super().__init__()
 
 
-        self.setWindowTitle("Peter Mulwa POS")
+        self.setWindowTitle("Peter POS")
         
         
         icon = QIcon('home.png')

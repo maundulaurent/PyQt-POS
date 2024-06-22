@@ -2,101 +2,19 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import sqlite3
+import time  
+
 
 class ProductManagementPage(QWidget):
     def __init__(self):
         super().__init__()
+
+        # Initialize database connection
+        self.conn = sqlite3.connect('products.db')
+        self.cursor = self.conn.cursor()
+
+        # Initialize UI
         self.init_ui()
-        self.init_db()
-
-    def init_ui(self):
-        self.main_layout = QVBoxLayout()
-        self.setLayout(self.main_layout)
-
-        # Category Management Bar
-        self.category_bar = QWidget()
-        self.category_layout = QHBoxLayout()
-        self.category_bar.setLayout(self.category_layout)
-        self.category_combo = QComboBox()
-        self.category_combo.addItems(["Add Category", "Delete Category", "Edit Category"])
-        self.category_combo.currentTextChanged.connect(self.manage_category)
-
-        self.filter_combo = QComboBox()
-        self.filter_combo.addItems(["All"])
-        self.filter_combo.currentTextChanged.connect(self.filter_products)
-
-        self.category_layout.addWidget(QLabel("Category: "))
-        self.category_layout.addWidget(self.category_combo)
-        self.category_layout.addStretch()
-        self.category_layout.addWidget(QLabel("Filter: "))
-        self.category_layout.addWidget(self.filter_combo)
-        self.main_layout.addWidget(self.category_bar)
-
-        # Product Management Area
-        self.product_management_area = QWidget()
-        self.product_layout = QVBoxLayout()
-        self.product_management_area.setLayout(self.product_layout)
-        self.main_layout.addWidget(self.product_management_area)
-
-        # Form for product details
-        self.product_form = QFormLayout()
-
-        self.product_name = QLineEdit()
-        self.product_name.setPlaceholderText("Required")
-        self.product_price = QLineEdit()
-        self.product_price.setValidator(QIntValidator())
-        self.product_price.setPlaceholderText("Required")
-        self.product_category = QComboBox()
-        self.product_stock = QLabel()
-
-        self.product_form.addRow("Product Name:", self.product_name)
-        self.product_form.addRow("Price:", self.product_price)
-        self.product_form.addRow("Category:", self.product_category)
-        self.product_form.addRow("Stock Quantity:", self.product_stock)
-
-        self.product_layout.addLayout(self.product_form)
-
-        # Buttons for add, edit, and delete
-        self.buttons_layout = QHBoxLayout()
-        self.add_button = QPushButton("Add Product")
-        self.edit_button = QPushButton("Edit Product")
-        self.delete_button = QPushButton("Delete Product")
-
-        self.buttons_layout.addWidget(self.add_button)
-        self.buttons_layout.addWidget(self.edit_button)
-        self.buttons_layout.addWidget(self.delete_button)
-        self.product_layout.addLayout(self.buttons_layout)
-
-        # Product Table
-        self.product_table = QTableWidget()
-        self.product_table.setColumnCount(5)
-        self.product_table.setHorizontalHeaderLabels(["Product ID", "Name", "Price", "Category", "Stock"])
-        self.product_layout.addWidget(self.product_table)
-
-        # Connect buttons to functions
-        self.add_button.clicked.connect(self.add_product)
-        self.edit_button.clicked.connect(self.edit_product)
-        self.delete_button.clicked.connect(self.delete_product)
-
-        # Styles
-        self.setStyleSheet("""
-            QComboBox, QLineEdit, QLabel, QPushButton {
-                font-size: 14px;
-            }
-            QPushButton {
-                padding: 8px 12px;
-                border-radius: 6px;
-                background-color: #4e5052;
-                color: white;
-            }
-            QTableWidget {
-                border: 1px solid #ddd;
-                border-radius: 6px;
-            }
-            QLabel {
-                margin-top: 10px;
-            }
-        """)
 
     def init_db(self):
         self.conn = sqlite3.connect('products.db')
@@ -107,119 +25,306 @@ class ProductManagementPage(QWidget):
                                (id TEXT PRIMARY KEY, name TEXT, price INTEGER, category_id INTEGER, stock INTEGER,
                                 FOREIGN KEY (category_id) REFERENCES categories (id))''')
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS sales_history
-                       (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, cashier TEXT, total_amount REAL, items TEXT, payment_method TEXT)''')
+                               (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, cashier TEXT, total_amount REAL, items TEXT, payment_method TEXT)''')
         self.conn.commit()
         self.load_categories()
         self.load_products()
 
-    def load_categories(self):
-        self.product_category.clear()
-        self.filter_combo.clear()
-        self.filter_combo.addItem("All")
-        categories = self.cursor.execute("SELECT * FROM categories").fetchall()
-        for category in categories:
-            self.product_category.addItem(category[1], category[0])
-            self.filter_combo.addItem(category[1])
+    def init_ui(self):
+        # Main layout
+        self.main_layout = QHBoxLayout(self)
+
+        # Navigation menu
+        self.nav_layout = QVBoxLayout()
+        self.nav_menu = QWidget()
+        self.nav_menu.setFixedWidth(200)
+        self.nav_menu.setLayout(self.nav_layout)
+        self.nav_menu.setStyleSheet("""
+            background-color: #4e5052;
+            border-radius: 5px;
+        """)
+        self.main_layout.addWidget(self.nav_menu, 1)
+
+        # Navigation items
+        nav_items = ["Dashboard", "Inventory", "Stocks", "New Sale"]
+        nav_label = QLabel("Navigation Menu")
+        nav_label.setStyleSheet("color: white; padding: 20px;")
+        self.nav_layout.addWidget(nav_label)
+        for item in nav_items:
+            button = QPushButton(item)
+            button.setStyleSheet("""
+                QPushButton {
+                    color: white;
+                    background-color: #34495E;
+                    border: none;
+                    text-align: left;
+                    padding: 10px;
+                }
+                QPushButton:hover {
+                    background-color: #1ABC9C;
+                }
+            """)
+            self.nav_layout.addWidget(button)
+
+        # Content layout
+        self.content_layout = QVBoxLayout()
+        self.main_layout.addLayout(self.content_layout)
+
+        # Heading text
+        self.heading_text = QHBoxLayout()
+        self.heading_text.addWidget(QPushButton("Product Sales and Management"))
+        self.content_layout.addLayout(self.heading_text)
+
+        # Toolbar
+        self.toolbar_layout = QHBoxLayout()
+        self.content_layout.addLayout(self.toolbar_layout)
+
+        # Toolbar buttons
+        self.btn_all_products = QPushButton("All Products")
+        # self.btn_all_products.clicked.connect(self.show_all_products)
+        self.toolbar_layout.addWidget(self.btn_all_products)
+
+        self.btn_add_product = QPushButton("Add New Product")
+        self.btn_add_product.clicked.connect(self.add_new_product)
+        self.toolbar_layout.addWidget(self.btn_add_product)
+
+        self.btn_search = QPushButton("Search")
+        self.toolbar_layout.addWidget(self.btn_search)
+
+        self.btn_filter = QPushButton("Filter Products")
+        self.toolbar_layout.addWidget(self.btn_filter)
+
+        self.btn_export = QPushButton("Export")
+        self.toolbar_layout.addWidget(self.btn_export)
+
+        # Product list
+        self.product_list_layout = QVBoxLayout()
+        self.content_layout.addLayout(self.product_list_layout)
+
+        self.product_list_layout.addWidget(QLabel("All Products"))
+
+        # Initialize table to display products
+        self.product_table = QTableWidget()
+        self.product_table.setColumnCount(4)
+        self.product_table.setHorizontalHeaderLabels(["Product Name", "Product ID", "Product Category", "Stock Level"])
+        self.product_list_layout.addWidget(self.product_table)
+
+        # Buttons for product operations
+        self.product_buttons_layout = QHBoxLayout()
+        self.product_list_layout.addLayout(self.product_buttons_layout)
+
+        self.add_product_button = QPushButton("Add a New Product")
+        self.add_product_button.clicked.connect(self.add_new_product)
+        self.product_buttons_layout.addWidget(self.add_product_button)
+
+        self.edit_product_btn = QPushButton("Edit Product")
+        self.edit_product_btn.clicked.connect(self.edit_product)
+        self.product_buttons_layout.addWidget(self.edit_product_btn)
+
+        self.delete_product_btn = QPushButton("Delete Product")
+        self.delete_product_btn.clicked.connect(self.delete_product)
+        self.product_buttons_layout.addWidget(self.delete_product_btn)
+
+        # Stock alerts
+        self.stock_alerts_layout = QVBoxLayout()
+        self.content_layout.addLayout(self.stock_alerts_layout)
+
+        self.stock_alerts_layout.addWidget(QLabel("Stock Alerts/Notifications"))
+        self.stock_alerts = QLabel("No alerts.")
+        self.stock_alerts_layout.addWidget(self.stock_alerts)
+
+        # Load products initially
+        self.load_products()
+
+        # Set up main window
+        self.setWindowTitle("Inventory Management")
+        self.setGeometry(100, 100, 800, 600)
+        self.show()
+
+        self.btn_search.clicked.connect(self.search_products)
 
     def load_products(self):
-        self.product_table.setRowCount(0)
-        for row, form in enumerate(self.cursor.execute("SELECT * FROM products")):
-            self.product_table.insertRow(row)
-            for col, item in enumerate(form):
-                self.product_table.setItem(row, col, QTableWidgetItem(str(item)))
+        self.product_table.clearContents()
+        self.cursor.execute("SELECT name, id, category_id, stock FROM products")
+        products = self.cursor.fetchall()
 
-    def add_product(self):
-        if not self.validate_form():
-            return
+        if not products:
+            self.product_table.setRowCount(1)
+            self.product_table.setItem(0, 0, QTableWidgetItem("No Items in your Repository, Please add to display"))
+            self.product_table.setSpan(0, 0, 1, 4)  # Span across all columns
+        else:
+            self.product_table.setRowCount(len(products))
+            for i, product in enumerate(products):
+                self.product_table.setItem(i, 0, QTableWidgetItem(product[0]))  # Product Name
+                self.product_table.setItem(i, 1, QTableWidgetItem(product[1]))  # Product ID
+                self.product_table.setItem(i, 2, QTableWidgetItem(str(product[2])))  # Category ID
+                self.product_table.setItem(i, 3, QTableWidgetItem(str(product[3])))  # Stock Level
 
-        product_name = self.product_name.text()
-        product_price = int(self.product_price.text())
-        category_id = self.product_category.currentData()
-        product_id = f"{category_id}_{self.cursor.execute('SELECT COUNT(*) FROM products').fetchone()[0] + 1}"
-        product_stock = 0
+        self.product_table.resizeColumnsToContents()
 
-        self.cursor.execute("INSERT INTO products (id, name, price, category_id, stock) VALUES (?, ?, ?, ?, ?)",
-                            (product_id, product_name, product_price, category_id, product_stock))
-        self.conn.commit()
-        self.load_products()
-        self.reset_form()
+    def add_new_product(self):
+        dialog = AddProductDialog(self)
+        dialog.resize(400, 300)
+        if dialog.exec_():  # User clicked OK
+            product_name = dialog.product_name_input.text()
+            product_category = dialog.product_category_input.currentText()
+            stock_level = dialog.stock_level_input.text()
+
+            try:
+                # Generate a unique product ID (example using current timestamp)
+                product_id = str(int(time.time()))  # Example of generating ID
+
+                # Insert the new product into the database
+                self.cursor.execute("INSERT INTO products (id, name, category_id, stock) VALUES (?, ?, ?, ?)",
+                                    (product_id, product_name, product_category, stock_level))
+                self.conn.commit()
+
+                # Update the product list in your application
+                self.load_products()
+
+                QMessageBox.information(self, "Product Added", "Product successfully added.")
+
+            except sqlite3.IntegrityError as e:
+                QMessageBox.warning(self, "Database Error", "Failed to add product. Please check if the product already exists.")
+
+        dialog.deleteLater()
+
 
     def edit_product(self):
-        current_row = self.product_table.currentRow()
-        if current_row >= 0:
-            product_id = self.product_table.item(current_row, 0).text()
-            if not self.validate_form():
-                return
+        selected_rows = self.product_table.selectedItems()
+        if not selected_rows:
+            QMessageBox.warning(self, "Select Product", "Please select a product to edit.")
+            return
 
-            product_name = self.product_name.text()
-            product_price = int(self.product_price.text())
-            category_id = self.product_category.currentData()
+        row = selected_rows[0].row()
+        product_id = self.product_table.item(row, 1).text()
+        dialog = AddProductDialog(self, product_id=product_id)  # Pass product_id for editing
+        dialog.setWindowTitle("Edit Product")
 
-            self.cursor.execute("UPDATE products SET name=?, price=?, category_id=? WHERE id=?",
-                                (product_name, product_price, category_id, product_id))
-            self.conn.commit()
+        if dialog.exec_():
+            # No need to fetch data here; dialog handles it internally
             self.load_products()
-            self.reset_form()
+
+
+
 
     def delete_product(self):
-        current_row = self.product_table.currentRow()
-        if current_row >= 0:
-            product_id = self.product_table.item(current_row, 0).text()
+        selected_rows = self.product_table.selectedItems()
+        if not selected_rows:
+            QMessageBox.warning(self, "Select Product", "Please select a product to delete.")
+            return
+
+        row = selected_rows[0].row()
+        product_id = self.product_table.item(row, 1).text()
+        product_name = self.product_table.item(row, 0).text()
+
+        confirm = QMessageBox.question(self, "Confirm Deletion", f"Are you sure you want to delete the item:\n\n{product_name} (ID: {product_id})",
+                                       QMessageBox.Yes | QMessageBox.No)
+        if confirm == QMessageBox.Yes:
             self.cursor.execute("DELETE FROM products WHERE id=?", (product_id,))
             self.conn.commit()
+
             self.load_products()
+            QMessageBox.information(self, "Product Deleted", "Product successfully deleted.")
+    
 
-    def filter_products(self):
-        category = self.filter_combo.currentText()
-        for row in range(self.product_table.rowCount()):
-            item = self.product_table.item(row, 3)
-            if category == "All" or item.text() == category:
-                self.product_table.showRow(row)
+    # Add search functionality in ProductManagementPage class
+    def search_products(self):
+        search_text, ok = QInputDialog.getText(self, "Search Products", "Enter product name:")
+        if ok and search_text:
+            self.cursor.execute("SELECT name, id, category_id, stock FROM products WHERE name LIKE ?", ('%' + search_text + '%',))
+            products = self.cursor.fetchall()
+            self.product_table.setRowCount(len(products))
+            for i, product in enumerate(products):
+                self.product_table.setItem(i, 0, QTableWidgetItem(product[0]))  # Product Name
+                self.product_table.setItem(i, 1, QTableWidgetItem(product[1]))  # Product ID
+                self.product_table.setItem(i, 2, QTableWidgetItem(str(product[2])))  # Category ID
+                self.product_table.setItem(i, 3, QTableWidgetItem(str(product[3])))  # Stock Level
+        elif ok and not search_text:
+            QMessageBox.warning(self, "Empty Search", "Please enter a product name to search.")
+
+    # Connect search button to search_products method in init_ui method
+    
+
+
+
+
+# Update AddProductDialog class
+class AddProductDialog(QDialog):
+    def __init__(self, parent=None, product_id=None):
+        super().__init__(parent)
+        self.product_id = product_id  # Store product_id for editing
+        self.setWindowTitle("Add New Product" if product_id is None else "Edit Product")
+
+        layout = QVBoxLayout(self)
+
+        self.product_name_input = QLineEdit()
+        layout.addWidget(QLabel("Product Name:"))
+        layout.addWidget(self.product_name_input)
+
+        self.product_price_input = QLineEdit()
+        layout.addWidget(QLabel("Product Price:"))
+        layout.addWidget(self.product_price_input)
+
+        # Fetch categories dynamically from the database
+        self.product_category_input = QComboBox()
+        self.populate_categories()
+        layout.addWidget(QLabel("Product Category:"))
+        layout.addWidget(self.product_category_input)
+
+        self.stock_level_input = QLineEdit()
+        layout.addWidget(QLabel("Stock Level:"))
+        layout.addWidget(self.stock_level_input)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
+        buttons.accepted.connect(self.accept_and_validate)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+        if product_id:
+            # Populate dialog fields with existing product data for editing
+            parent.cursor.execute("SELECT name, price, category_id, stock FROM products WHERE id=?", (product_id,))
+            product_data = parent.cursor.fetchone()
+            self.product_name_input.setText(product_data[0])
+            self.product_price_input.setText(str(product_data[1]))
+            self.product_category_input.setCurrentIndex(self.product_category_input.findText(str(product_data[2])))
+            self.stock_level_input.setText(str(product_data[3]))
+
+    def accept_and_validate(self):
+        product_name = self.product_name_input.text().strip()
+        product_price = self.product_price_input.text().strip()
+        product_category = self.product_category_input.currentText()
+        stock_level = self.stock_level_input.text().strip()
+
+        if product_name == "" or product_price == "" or product_category == "":
+            QMessageBox.warning(self, "Incomplete Information", "Please fill in all fields.")
+        else:
+            parent = self.parent()
+            if self.product_id is None:
+                # Generate a unique product ID (example using current timestamp)
+                product_id = str(int(time.time()))  # Example of generating ID
+                # Insert the new product into the database
+                parent.cursor.execute("INSERT INTO products (id, name, price, category_id, stock) VALUES (?, ?, ?, ?, ?)",
+                                      (product_id, product_name, product_price, product_category, stock_level))
+                parent.conn.commit()
             else:
-                self.product_table.hideRow(row)
+                # Update existing product in the database
+                parent.cursor.execute("UPDATE products SET name=?, price=?, category_id=?, stock=? WHERE id=?",
+                                      (product_name, product_price, product_category, stock_level, self.product_id))
+                parent.conn.commit()
 
-    def manage_category(self):
-        category_action = self.category_combo.currentText()
-        if category_action == "Add Category":
-            self.add_category()
-        elif category_action == "Delete Category":
-            self.delete_category()
-        elif category_action == "Edit Category":
-            self.edit_category()
+            # Update the product list in your application
+            parent.load_products()
 
-    def add_category(self):
-        text, ok = QInputDialog.getText(self, 'Add Category', 'Enter category name:')
-        if ok and text:
-            self.cursor.execute("INSERT INTO categories (name) VALUES (?)", (text,))
-            self.conn.commit()
-            self.load_categories()
+            QMessageBox.information(self, "Product Added" if self.product_id is None else "Product Updated",
+                                    "Product successfully added." if self.product_id is None else "Product successfully updated.")
+            self.accept()
 
-    def delete_category(self):
-        categories = [self.product_category.itemText(i) for i in range(self.product_category.count())]
-        text, ok = QInputDialog.getItem(self, 'Delete Category', 'Select category to delete:', categories, editable=False)
-        if ok and text:
-            self.cursor.execute("DELETE FROM categories WHERE name=?", (text,))
-            self.conn.commit()
-            self.load_categories()
-
-    def edit_category(self):
-        categories = [self.product_category.itemText(i) for i in range(self.product_category.count())]
-        old_text, ok = QInputDialog.getItem(self, 'Edit Category', 'Select category to edit:', categories, editable=False)
-        if ok and old_text:
-            new_text, ok = QInputDialog.getText(self, 'Edit Category', 'Enter new category name:')
-            if ok and new_text:
-                self.cursor.execute("UPDATE categories SET name=? WHERE name=?", (new_text, old_text))
-                self.conn.commit()
-                self.load_categories()
-
-    def validate_form(self):
-        if not self.product_name.text() or not self.product_price.text():
-            QMessageBox.warning(self, "Input Error", "Please fill all required fields.")
-            return False
-        return True
-
-    def reset_form(self):
-        self.product_name.clear()
-        self.product_price.clear()
-
+    def populate_categories(self):
+        # Fetch categories from the database and populate the dropdown
+        parent = self.parent()
+        parent.cursor.execute("SELECT id, name FROM categories")
+        categories = parent.cursor.fetchall()
+        for category_id, category_name in categories:
+            self.product_category_input.addItem(f"{category_name} ({category_id})")
 
