@@ -104,9 +104,8 @@ class DashboardPage(QWidget):
         """)
         header_layout.addWidget(self.search_bar)
 
-        # before quick actions
+        # Before quick actions
         before_quick = QHBoxLayout()
-        self.setLayout(before_quick)
 
         card = QFrame()
         card.setObjectName("card")
@@ -124,13 +123,12 @@ class DashboardPage(QWidget):
             }
         """)
 
-        # card title
+        # Card title
         title_label = QLabel("Recently Sold")
         title_label.setStyleSheet("font-size:16px; color: #A8A8A8;")
         card_layout.addWidget(title_label)
 
-        # sold items details
-
+        # Sold items details
         recently_sold = QLabel("New Americano Perfume")
         recently_sold.setStyleSheet("font-size: 12px; color: #ffffff ")
         card_layout.addWidget(recently_sold)

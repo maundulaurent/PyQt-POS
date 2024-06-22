@@ -1,0 +1,8 @@
+Date: 2024-06-22 12:12:45
+Cashier: Cashier Name
+Payment Method: Mpesa
+Total Amount: $646047.00
+2_7 | tshirts | $4392 | Qty: 1
+3_4 | Bread | $137424 | Qty: 1
+3_1 | Maiize | $500000 | Qty: 1
+3_3 | Carrots | $4231 | Qty: 1

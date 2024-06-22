@@ -27,7 +27,8 @@ class WelcomePage(QWidget):
         # Form layout for login inputs
 
         self.signin_label = QLabel("SignIn Page")
-        self.layout.addWidget(self.signin_label)
+        self.signin_label.setStyleSheet("font-weight: bold; margin-left: 280px; font-size: 14px;")
+        self.right_column.addWidget(self.signin_label)
         
         self.form_layout = QFormLayout()
         self.right_column.addLayout(self.form_layout)
@@ -41,6 +42,10 @@ class WelcomePage(QWidget):
         self.password_input.setEchoMode(QLineEdit.Password)
         self.form_layout.addRow("Password:", self.password_input)
 
+        self.signup_link = QLabel("Don't have an account? Go to SignUp")
+        self.signup_link.setStyleSheet("font-size: 14px;")
+        self.right_column.addWidget(self.signup_link)
+        
         # Login buttons
         self.login_admin = QPushButton("Login as Admin")
         self.login_admin.clicked.connect(switch_to_admin_page)

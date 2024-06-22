@@ -106,6 +106,8 @@ class ProductManagementPage(QWidget):
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS products
                                (id TEXT PRIMARY KEY, name TEXT, price INTEGER, category_id INTEGER, stock INTEGER,
                                 FOREIGN KEY (category_id) REFERENCES categories (id))''')
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS sales_history
+                       (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, cashier TEXT, total_amount REAL, items TEXT, payment_method TEXT)''')
         self.conn.commit()
         self.load_categories()
         self.load_products()

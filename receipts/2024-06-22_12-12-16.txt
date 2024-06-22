@@ -1,0 +1,8 @@
+Date: 2024-06-22 12:12:09
+Cashier: Cashier Name
+Payment Method: Cash
+Total Amount: $96751602.00
+3_3 | Carrots | $4231 | Qty: 9
+2_7 | tshirts | $4392 | Qty: 1
+3_5 | Tea | $12984389 | Qty: 1
+3_6 | Rice | $83724742 | Qty: 1
