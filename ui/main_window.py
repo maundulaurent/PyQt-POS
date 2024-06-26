@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QMainWindow, QStackedWidget, QAction, QLabel, QLineE
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon, QPixmap
 
+from pages.user_login import LoginPage
 from pages.welcome_page import WelcomePage
 from pages.dashboard_page import DashboardPage
 from pages.product_management_page import ProductManagementPage
@@ -9,7 +10,7 @@ from pages.checkout_page import CheckoutPage
 from pages.inventory_management_page import InventoryManagementPage
 from pages.settings_page import SettingsPage
 from pages.reports_page import ReportsPage
-from pages.user_signin import UserSignin
+from pages.admin_page import AdminPage
 
 class POSSystem(QMainWindow):
     def __init__(self):
@@ -26,15 +27,23 @@ class POSSystem(QMainWindow):
         self.central_widget = QStackedWidget()
         self.setCentralWidget(self.central_widget)
 
-        self.welcome_page = WelcomePage(self.switch_to_dashboard_page, self.show_user_signin_page)
+        self.user_login = LoginPage(
+            self.switch_to_admin_page,
+            self.switch_to_dashboard_page
+        )
+        self.welcome_page = WelcomePage(
+            self.switch_to_dashboard_page,
+            self.switch_to_admin_page
+            )
         self.dashboard_page = DashboardPage()
         self.product_management_page = ProductManagementPage()
         self.checkout_page = CheckoutPage()
         self.inventory_management_page = InventoryManagementPage()
         self.settings_page = SettingsPage()
         self.reports_page = ReportsPage()
-        self.user_signin = UserSignin()
+        self.admin_page = AdminPage()
 
+        self.central_widget.addWidget(self.user_login)
         self.central_widget.addWidget(self.welcome_page)
         self.central_widget.addWidget(self.dashboard_page)
         self.central_widget.addWidget(self.product_management_page)
@@ -42,7 +51,8 @@ class POSSystem(QMainWindow):
         self.central_widget.addWidget(self.inventory_management_page)
         self.central_widget.addWidget(self.settings_page)
         self.central_widget.addWidget(self.reports_page)
-        self.central_widget.addWidget(self.user_signin)
+        self.central_widget.addWidget(self.admin_page)
+
 
         self.create_menu_bar()
         # self.create_top_bar()
@@ -50,8 +60,8 @@ class POSSystem(QMainWindow):
     def switch_to_dashboard_page(self):
         self.central_widget.setCurrentWidget(self.dashboard_page)
 
-    def show_user_signin_page(self):
-        self.central_widget.setCurrentWidget(self.user_signin)
+    def switch_to_admin_page(self):
+        self.central_widget.setCurrentWidget(self.admin_page)
 
     def create_menu_bar(self):
         menu_bar = self.menuBar()
@@ -95,7 +105,7 @@ class POSSystem(QMainWindow):
 
         account_menu = menu_bar.addMenu("Account")
         logout_action = QAction("Signout", self)
-        logout_action.triggered.connect(lambda: self.central_widget.setCurrentWidget(self.welcome_page))
+        logout_action.triggered.connect(lambda: self.central_widget.setCurrentWidget(self.user_login))
         account_menu.addAction(logout_action)
 
  

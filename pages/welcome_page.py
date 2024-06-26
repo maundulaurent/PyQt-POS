@@ -1,7 +1,10 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit, QFormLayout
 
 class WelcomePage(QWidget):
-    def __init__(self, switch_to_admin_page, switch_to_user_signin_page):
+    def __init__(
+            self,
+            switch_to_admin_page,
+            switch_to_user_signin_page):
         super().__init__()
 
         # Main horizontal layout
@@ -56,5 +59,5 @@ class WelcomePage(QWidget):
         self.right_column.addWidget(self.login_user)
 
         self.start_button = QPushButton("Start")
-        self.start_button.clicked.connect(switch_to_user_signin_page)
+        # self.start_button.clicked.connect(switch_to_user_signin_page)
         self.right_column.addWidget(self.start_button)

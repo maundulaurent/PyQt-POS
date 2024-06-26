@@ -4,6 +4,10 @@ from PyQt5.QtCore import *
 import sqlite3
 from datetime import datetime
 import os
+import json
+import requests
+
+
 
 class CheckoutPage(QWidget):
     def __init__(self):
@@ -76,13 +80,15 @@ class CheckoutPage(QWidget):
         self.scan_button.clicked.connect(self.scan_item)
         self.all_items_list.itemClicked.connect(self.select_item)
         self.cash_button.clicked.connect(self.process_payment)
-        self.mpesa_button.clicked.connect(self.process_payment)
+        # self.mpesa_button.clicked.connect(self.process_payment)
+        self.mpesa_button.clicked.connect(self.show_mpesa_dialog)
         self.print_receipt_button.clicked.connect(self.print_receipt)
         self.finish_sale_button.clicked.connect(self.finish_sale)
 
         # Load all items
         self.load_all_items()
 
+    
     def load_all_items(self):
         self.all_items_list.clear()
         self.cursor.execute("SELECT id, name, price FROM products")
@@ -209,5 +215,117 @@ class CheckoutPage(QWidget):
             f.write(receipt_text)
         QMessageBox.information(self, "Receipt Printed", f"Receipt saved as {filename}")
 
+    def show_mpesa_dialog(self):
+        total = self.total_label.text().split('$')[1]
+        self.mpesa_dialog = MpesaDialog(total)
+        self.mpesa_dialog.exec_()
 
 
+class MpesaDialog(QDialog):
+    def __init__(self, total_amount):
+        super().__init__()
+        self.setWindowTitle('Mpesa Payment')
+        self.layout = QVBoxLayout()
+
+        self.total_amount = total_amount
+
+        self.phone_label = QLabel('Enter Customer Phone Number:')
+        self.layout.addWidget(self.phone_label)
+
+        self.phone_input = QLineEdit()
+        self.layout.addWidget(self.phone_input)
+
+        self.amount_label = QLabel(f'Amount to be paid: ${self.total_amount}')
+        self.layout.addWidget(self.amount_label)
+
+        self.pay_button = QPushButton('Pay')
+        self.layout.addWidget(self.pay_button)
+
+        self.setLayout(self.layout)
+        self.pay_button.clicked.connect(self.process_payment)
+
+    def process_payment(self):
+        phone_number = self.phone_input.text()
+        if not phone_number:
+            QMessageBox.warning(self, "Input Error", "Please enter the customer phone number.")
+            return
+                # Format the phone number
+        phone_number = self.format_phone_number(phone_number)
+        if not phone_number:
+            QMessageBox.warning(self, "Input Error", "Please enter a valid phone number in the format 07XXXXXXXX.")
+            return
+
+        # Call the MPESA STK Push function
+        self.mpesa_stk_push(phone_number, self.total_amount)
+    def format_phone_number(self, phone_number):
+        # Remove any leading + or non-numeric characters
+        phone_number = ''.join(filter(str.isdigit, phone_number))
+        
+        if phone_number.startswith('0'):
+            phone_number = '254' + phone_number[1:]
+        elif not phone_number.startswith('254'):
+            return None  # Invalid phone number format
+        
+        return phone_number
+    
+    def mpesa_stk_push(self, phone_number, amount):
+        # Implement the STK push logic here
+        consumer_key = ''
+        consumer_secret = ''
+        short_code = ''
+        lipa_na_mpesa_online_passkey = '#'
+        business_short_code = '174379'
+        callback_url = ''
+
+        
+        try:
+            # Get the access token
+            access_token_url = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
+            response = requests.get(access_token_url, auth=(consumer_key, consumer_secret))
+            access_token = json.loads(response.text)['access_token']
+
+            # Ensure amount is a valid number
+            try:
+                amount = float(amount)
+                amount = int(amount)  # Ensure amount is an integer
+            except ValueError:
+                QMessageBox.warning(self, "Input Error", "Invalid amount format.")
+                return
+
+            # Make the STK push request
+            api_url = 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
+            headers = {
+                'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json'
+            }
+            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+            password = f"{short_code}{lipa_na_mpesa_online_passkey}{timestamp}"
+
+            payload = {
+                'BusinessShortCode': short_code,
+                'Password': password,
+                'Timestamp': timestamp,
+                'TransactionType': 'CustomerPayBillOnline',
+                'Amount': amount,
+                'PartyA': phone_number,
+                'PartyB': business_short_code,
+                'PhoneNumber': phone_number,
+                'CallBackURL': callback_url,
+                'AccountReference': 'POS System',
+                'TransactionDesc': 'Payment for items'
+            }
+
+            response = requests.post(api_url, headers=headers, json=payload)
+            response_data = response.json()
+            if 'ResponseCode' in response_data:
+                if response_data['ResponseCode'] == '0':
+                    QMessageBox.information(self, "Payment", f"STK Push to {phone_number} for ${amount} initiated.")
+                else:
+                    QMessageBox.warning(self, "Payment Error", f"Failed to initiate STK Push: {response_data['errorMessage']}")
+            else:
+                QMessageBox.warning(self, "Payment Error", f"Unexpected response: {response_data}")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An error occurred: {str(e)}")
+
+        self.accept()
