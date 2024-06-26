@@ -1,3 +1,4 @@
+
 A modularized Point of Sale System, designed using PyQt python GUI.
 
 This an image of the products page in the system. 

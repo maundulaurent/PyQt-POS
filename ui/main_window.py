@@ -53,15 +53,22 @@ class POSSystem(QMainWindow):
         self.central_widget.addWidget(self.reports_page)
         self.central_widget.addWidget(self.admin_page)
 
-
+        self.menu_bar = None  # Initialize menu bar as None initially
         self.create_menu_bar()
-        # self.create_top_bar()
+        self.central_widget.setCurrentWidget(self.user_login)  # Initially show login page
+        self.menuBar().setVisible(False)  # Ensure menu bar is hidden initially
 
-    def switch_to_dashboard_page(self):
+    def switch_to_dashboard_page(self, logged_in=True):
         self.central_widget.setCurrentWidget(self.dashboard_page)
+        if logged_in:
+            # Show menu bar only after successful login
+            self.menuBar().setVisible(True)
 
-    def switch_to_admin_page(self):
+    def switch_to_admin_page(self, logged_in=True):
         self.central_widget.setCurrentWidget(self.admin_page)
+        if logged_in:
+            # Show menu bar only after successful login
+            self.menuBar().setVisible(True)
 
     def create_menu_bar(self):
         menu_bar = self.menuBar()
@@ -105,8 +112,15 @@ class POSSystem(QMainWindow):
 
         account_menu = menu_bar.addMenu("Account")
         logout_action = QAction("Signout", self)
-        logout_action.triggered.connect(lambda: self.central_widget.setCurrentWidget(self.user_login))
+        logout_action.triggered.connect(self.handle_logout)
         account_menu.addAction(logout_action)
+
+    def handle_logout(self):
+        self.central_widget.setCurrentWidget(self.user_login)
+        # Get the actual menu bar object using menuBar()
+        menu_bar = self.menuBar()
+        if menu_bar is not None:  # Check if menu bar is created
+            menu_bar.setVisible(False)  # Hide the menu bar
 
  
     def show_about_dialog(self):

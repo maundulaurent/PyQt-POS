@@ -2,12 +2,16 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtCore import Qt, QSize
 
+
+        
 class DashboardPage(QWidget):
     def __init__(self):
         super().__init__()
+        
 
         self.main_layout = QHBoxLayout()
         self.setLayout(self.main_layout)
+
 
         self.setStyleSheet("""
             QWidget {
