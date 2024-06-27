@@ -20,9 +20,8 @@ class POSSystem(QMainWindow):
         self.setWindowTitle("Peter POS")
         
         
-        icon = QIcon('home.png')
-        self.setWindowIcon(QIcon(icon))
-        self.setGeometry(100, 50, 1000, 600)
+
+        self.setGeometry(100, 50, 800, 600)
 
         self.central_widget = QStackedWidget()
         self.setCentralWidget(self.central_widget)

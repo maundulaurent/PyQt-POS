@@ -71,9 +71,9 @@ class DashboardPage(QWidget):
         self.sidebar_layout.setSpacing(5)  # Adjust vertical spacing between buttons
 
         # Add sidebar buttons
-        self.add_sidebar_button("Dashboard", "images/pyimg.png")
-        self.add_sidebar_button("Products", "images/pyimg.png")
-        self.add_sidebar_button("Category", "images/home.png")
+        self.add_sidebar_button("Dashboard")
+        self.add_sidebar_button("Products")
+        self.add_sidebar_button("Category")
         self.add_sidebar_button("SubCategory")
         self.add_sidebar_button("Brands")
         self.add_sidebar_button("Order")

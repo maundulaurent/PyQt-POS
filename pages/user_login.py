@@ -1,12 +1,12 @@
 import sqlite3
+from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
 
+# Import the generated UI class
+from uifiles.login_ui import Ui_Form, ClickableLabel
 
-
-# Admin Page
-class LoginPage(QWidget):
+# Login Page
+class LoginPage(QWidget, Ui_Form):
     def __init__(self, switch_to_admin_page, switch_to_dashboard_page):
         super().__init__()
         self.switch_to_admin_page = switch_to_admin_page
@@ -15,77 +15,61 @@ class LoginPage(QWidget):
         self.conn = sqlite3.connect('products.db')
         self.cursor = self.conn.cursor()
 
+
         self.init_db()
+        self.setupUi(self)  # Set up the UI from the generated code
         self.init_ui()
 
-        # Database Initialization
+    # Database Initialization
     def init_db(self):
         self.conn = sqlite3.connect('products.db')
         self.cursor = self.conn.cursor()
-        
+
         # Create user table if it does not exist
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS user
                         (id INTEGER PRIMARY KEY AUTOINCREMENT, 
                         username TEXT NOT NULL UNIQUE, 
                         password TEXT NOT NULL,
                         role TEXT NOT NULL DEFAULT 'user')''')
-        
+
         # Check if there's any admin user, if not create the default admin
         self.cursor.execute("SELECT COUNT(*) FROM user WHERE role='admin'")
         if self.cursor.fetchone()[0] == 0:
             self.cursor.execute("INSERT INTO user (username, password, role) VALUES ('admin', 'admin', 'admin')")
-        
+
         self.conn.commit()
 
-    def init_ui(self):      
-        self.setWindowTitle("POS LoginPage")
-
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
-
-        self.username_label = QLabel('Username:')
-        self.username_input = QLineEdit()
-        self.password_label = QLabel('Password:')
-        self.password_input = QLineEdit()
-        self.password_input.setEchoMode(QLineEdit.Password)
-
-        self.login_button = QPushButton('Login')
-        self.login_button.clicked.connect(self.user_authenticate)
-
-        self.admin_login = QPushButton('or Login as Admin')
-        self.admin_login.clicked.connect(self.admin_authenticate)
-
-        self.layout.addWidget(self.username_label)
-        self.layout.addWidget(self.username_input)
-        self.layout.addWidget(self.password_label)
-        self.layout.addWidget(self.password_input)
-        self.layout.addWidget(self.login_button)
-        self.layout.addWidget(self.admin_login)
+    def init_ui(self):
+        # Connect buttons to their respective functions
+        self.pushButton.clicked.connect(self.user_authenticate)
+        self.label_5.clicked.connect(self.admin_authenticate)
 
     def admin_authenticate(self):
         self.cursor.execute("SELECT COUNT(*) FROM user WHERE role='admin'")
         if self.cursor.fetchone()[0] > 0:
             dialog = AdminLoginDialog(self.conn, self.switch_to_admin_page)
-            dialog.exec_()
+            if dialog.exec_() == QDialog.Accepted:
+                pass
         else:
             dialog = AdminSetupDialog(self.conn)
-            dialog.exec_()
+            if dialog.exec_() == QDialog.Accepted:
+                # Clear input fields after dialog is accepted
+                pass  # Add clearing logic if necessary
+
     def user_authenticate(self):
-        username = self.username_input.text()
-        password = self.password_input.text()
-        
+        username = self.lineEdit.text()
+        password = self.lineEdit_2.text()
+
         self.cursor.execute("SELECT * FROM user WHERE username=? AND password=? AND role='user'", (username, password))
         result = self.cursor.fetchone()
 
         if result:
-
             # QMessageBox.information(self, 'Success', 'User login successful')
             self.switch_to_dashboard_page()
+            self.lineEdit.clear()  # Clear username input
+            self.lineEdit_2.clear()
         else:
             QMessageBox.warning(self, 'Error', 'Invalid credentials')
-        # QMessageBox.information(self, 'User Login', 'User authentication Coming')
-
-
 
 # Admin Setup Dialog
 class AdminSetupDialog(QDialog):
@@ -141,11 +125,9 @@ class AdminSetupDialog(QDialog):
 
 # Admin Login Dialog
 class AdminLoginDialog(QDialog):
-
-
     def __init__(self, conn, switch_to_admin_page):
         super().__init__()
-        
+
         self.conn = conn
         self.switch_to_admin_page = switch_to_admin_page
         self.setWindowTitle('Admin Login')
@@ -183,3 +165,19 @@ class AdminLoginDialog(QDialog):
             # Open admin page or perform other actions
         else:
             QMessageBox.warning(self, 'Error', 'Invalid credentials')
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+
+    # Example switch functions
+    def switch_to_admin_page():
+        print("Switching to admin page...")
+
+    def switch_to_dashboard_page():
+        print("Switching to dashboard page...")
+
+    login_page = LoginPage(switch_to_admin_page, switch_to_dashboard_page)
+    login_page.show()
+
+    sys.exit(app.exec_())

@@ -8,3 +8,11 @@ This an image of the products page in the system.
 There A bunch of other pages and functionalities, most are still being developed.
 Much will be posted here after the system has developed. 
 Feel free and welcome to collaborate and pull request.
+
+
+to run designer, use this command
+pyqt5-tools designer
+pyuic5
+pyuic5 -x file_name.ui -o test.py
+
+
