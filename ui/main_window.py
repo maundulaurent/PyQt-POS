@@ -9,8 +9,10 @@ from pages.product_management_page import ProductManagementPage
 from pages.checkout_page import CheckoutPage
 from pages.inventory_management_page import InventoryManagementPage
 from pages.settings_page import SettingsPage
-from pages.reports_page import ReportsPage
 from pages.admin_page import AdminPage
+from pages.history import HistoryManager, HistoryWidget
+from pages.orders import OrdersPage
+
 
 class POSSystem(QMainWindow):
     def __init__(self):
@@ -34,23 +36,31 @@ class POSSystem(QMainWindow):
             self.switch_to_dashboard_page,
             self.switch_to_admin_page
             )
-        self.dashboard_page = DashboardPage()
+        self.dashboard_page = DashboardPage(
+            self.show_products,
+            self.show_inventory,
+            self.show_orders,
+            self.show_history,
+        )
         self.product_management_page = ProductManagementPage()
         self.checkout_page = CheckoutPage()
         self.inventory_management_page = InventoryManagementPage()
         self.settings_page = SettingsPage()
-        self.reports_page = ReportsPage()
         self.admin_page = AdminPage()
+        self.history_page = HistoryManager()
+        self.history_widget = HistoryWidget()
+        self.orders_page = OrdersPage()
 
-        self.central_widget.addWidget(self.user_login)
+        self.central_widget.addWidget(self.user_login)#Stack this number one
         self.central_widget.addWidget(self.welcome_page)
         self.central_widget.addWidget(self.dashboard_page)
         self.central_widget.addWidget(self.product_management_page)
         self.central_widget.addWidget(self.checkout_page)
         self.central_widget.addWidget(self.inventory_management_page)
         self.central_widget.addWidget(self.settings_page)
-        self.central_widget.addWidget(self.reports_page)
+        self.central_widget.addWidget(self.orders_page)
         self.central_widget.addWidget(self.admin_page)
+        self.central_widget.addWidget(self.history_page)
 
         self.menu_bar = None  # Initialize menu bar as None initially
         self.create_menu_bar()
@@ -127,3 +137,16 @@ class POSSystem(QMainWindow):
         about_dialog.setWindowTitle("About")
         about_dialog.setGeometry(100, 100, 200, 100)
         about_dialog.show()
+
+
+
+# Dashboard Links
+    def show_products(self):
+        self.central_widget.setCurrentWidget(self.product_management_page)
+
+    def show_inventory(self):
+        self.central_widget.setCurrentWidget(self.inventory_management_page)
+    def show_orders(self):
+        self.central_widget.setCurrentWidget(self.orders_page)
+    def show_history(self):
+        self.central_widget.setCurrentWidget(self.history_page)

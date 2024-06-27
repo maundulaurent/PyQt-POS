@@ -5,8 +5,17 @@ from PyQt5.QtCore import Qt, QSize
 
         
 class DashboardPage(QWidget):
-    def __init__(self):
+    def __init__(self,
+                 show_products,
+                 show_inventory,
+                 show_orders,
+                 show_history
+                 ):
         super().__init__()
+        self.show_products = show_products
+        self.show_inventory = show_inventory
+        self.show_orders = show_orders
+        self.show_history = show_history
         
 
         self.main_layout = QHBoxLayout()
@@ -70,17 +79,13 @@ class DashboardPage(QWidget):
         self.sidebar_layout.setContentsMargins(10, 10, 10, 10)  # Add some margin around the layout
         self.sidebar_layout.setSpacing(5)  # Adjust vertical spacing between buttons
 
-        # Add sidebar buttons
+        # Add sidebar buttons with callbacks
         self.add_sidebar_button("Dashboard")
-        self.add_sidebar_button("Products")
-        self.add_sidebar_button("Category")
-        self.add_sidebar_button("SubCategory")
-        self.add_sidebar_button("Brands")
-        self.add_sidebar_button("Order")
-        self.add_sidebar_button("Transactions")
-        self.add_sidebar_button("Invoices")
-        self.add_sidebar_button("Sales")
-        self.add_sidebar_button("Sales Summary")
+        self.add_sidebar_button("Products", self.show_products)
+        self.add_sidebar_button("Categories", self.show_inventory)
+        self.add_sidebar_button("Orders", self.show_orders)
+        # self.add_sidebar_button("Transactions")
+        self.add_sidebar_button("POS History", self.show_history)
 
         # Main content area
         self.content_area = QWidget()
@@ -186,17 +191,10 @@ class DashboardPage(QWidget):
         self.top_selling_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.content_layout.addWidget(self.top_selling_table)
 
-    def add_sidebar_button(self, text, icon_path=None):
+    def add_sidebar_button(self, text, callback=None):
         button = QPushButton()
         button_layout = QHBoxLayout()
         button.setLayout(button_layout)
-
-        if icon_path:
-            icon_label = QLabel()
-            pixmap = QPixmap(icon_path)
-            pixmap = pixmap.scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            icon_label.setPixmap(pixmap)
-            button_layout.addWidget(icon_label, alignment=Qt.AlignLeft)  # Align icon to the left
 
         text_label = QLabel(text)
         button_layout.addWidget(text_label, alignment=Qt.AlignLeft)  # Align text to the left
@@ -215,3 +213,5 @@ class DashboardPage(QWidget):
         button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.sidebar_layout.addWidget(button)
         self.sidebar_layout.setAlignment(Qt.AlignTop)  # Align buttons at the top of the layout
+        if callback:
+            button.clicked.connect(callback)
