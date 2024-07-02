@@ -10,7 +10,7 @@ from pages.checkout_page import CheckoutPage
 from pages.inventory_management_page import InventoryManagementPage
 from pages.settings_page import SettingsPage
 from pages.admin_page import AdminPage
-from pages.history import HistoryManager, HistoryWidget
+from pages.history import HistoryWidget
 from pages.orders import OrdersPage
 
 
@@ -23,7 +23,7 @@ class POSSystem(QMainWindow):
         
         
 
-        self.setGeometry(100, 50, 800, 600)
+        self.setGeometry(100, 50, 1100, 600)
 
         self.central_widget = QStackedWidget()
         self.setCentralWidget(self.central_widget)
@@ -41,14 +41,16 @@ class POSSystem(QMainWindow):
             self.show_inventory,
             self.show_orders,
             self.show_history,
+            self.show_checkout,
         )
         self.product_management_page = ProductManagementPage()
         self.checkout_page = CheckoutPage()
         self.inventory_management_page = InventoryManagementPage()
         self.settings_page = SettingsPage()
         self.admin_page = AdminPage()
-        self.history_page = HistoryManager()
-        self.history_widget = HistoryWidget()
+        self.history_page = HistoryWidget(
+            self.switch_to_dashboard_page
+        )
         self.orders_page = OrdersPage()
 
         self.central_widget.addWidget(self.user_login)#Stack this number one
@@ -150,3 +152,5 @@ class POSSystem(QMainWindow):
         self.central_widget.setCurrentWidget(self.orders_page)
     def show_history(self):
         self.central_widget.setCurrentWidget(self.history_page)
+    def show_checkout(self):
+        self.central_widget.setCurrentWidget(self.checkout_page)

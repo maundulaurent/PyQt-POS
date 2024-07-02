@@ -9,13 +9,15 @@ class DashboardPage(QWidget):
                  show_products,
                  show_inventory,
                  show_orders,
-                 show_history
+                 show_history,
+                 show_checkout
                  ):
         super().__init__()
         self.show_products = show_products
         self.show_inventory = show_inventory
         self.show_orders = show_orders
         self.show_history = show_history
+        self.show_checkout = show_checkout
         
 
         self.main_layout = QHBoxLayout()
@@ -105,13 +107,10 @@ class DashboardPage(QWidget):
         quick_stats_layout = QHBoxLayout()
         self.content_layout.addLayout(quick_stats_layout)
 
-        self.add_card_to_layout(quick_stats_layout, "Total Sales Today", "$1,230", "14 Transactions")
+        self.add_card_to_layout(quick_stats_layout, "Transactions", "14 Transactions", "Today")
         self.add_card_to_layout(quick_stats_layout, "Top Selling Product", "New Americano Perfume", "30 units sold")
-        self.add_card_to_layout(quick_stats_layout, "Pending Orders", "5 Orders")
-        self.add_card_to_layout(quick_stats_layout, "Low Stock Alerts", "3 Products")
-
-        # Before quick actions
-        before_quick = QHBoxLayout()
+        self.add_card_to_layout(quick_stats_layout, "Pending Orders", "5 Orders", "...")
+        self.add_card_to_layout(quick_stats_layout, "Low Stock Alerts", "3 Products", "...")
 
         card = QFrame()
         card.setObjectName("card")
@@ -125,7 +124,7 @@ class DashboardPage(QWidget):
                 margin: 10px;
                 min-width: 200px;
                 max-width: 300px;
-                height: 150px;
+                height: 100px;
             }
         """)
 
@@ -146,14 +145,15 @@ class DashboardPage(QWidget):
         self.new_sale_layout = QVBoxLayout()
         self.new_sale_frame.setLayout(self.new_sale_layout)
 
-        self.new_sale_button = QLabel("New Sale")
-        self.new_sale_button.setAlignment(Qt.AlignCenter)
+        self.new_sale_button = QPushButton("New Sale +")
+        # self.new_sale_button.setAlignment(Qt.AlignCenter)
         self.new_sale_button.setStyleSheet("""
             background: #4e5052;
             border-radius: 6px;
             font-weight:bold;
             font-size: 20px;
         """)
+        self.new_sale_button.clicked.connect(self.show_checkout)
         self.new_sale_layout.addWidget(self.new_sale_button)
 
         # Create the card-like frame for Add Product button
@@ -166,14 +166,14 @@ class DashboardPage(QWidget):
         self.add_product_layout = QVBoxLayout()
         self.add_product_frame.setLayout(self.add_product_layout)
 
-        self.add_product_button = QLabel("Add Product")
-        self.add_product_button.setAlignment(Qt.AlignCenter)
+        self.add_product_button = QPushButton("Add Product")
+        # self.add_product_button.setAlignment(Qt.AlignCenter)
         self.add_product_button.setStyleSheet("""
             color: white;
             font-weight: bold;
             font-size: 20px;
         """)
-
+        self.add_product_button.clicked.connect(self.show_products)
         self.add_product_layout.addWidget(self.add_product_button)
 
 
@@ -195,14 +195,15 @@ class DashboardPage(QWidget):
         self.new_sale_layout = QVBoxLayout()
         self.new_sale_frame.setLayout(self.new_sale_layout)
 
-        self.new_sale_button = QLabel("Categories")
-        self.new_sale_button.setAlignment(Qt.AlignCenter)
+        self.new_sale_button = QPushButton("Categories")
+        # self.new_sale_button.setAlignment(Qt.AlignCenter)
         self.new_sale_button.setStyleSheet("""
             background: #4e5052;
             border-radius: 6px;
             font-weight:bold;
             font-size: 20px;
         """)
+        self.new_sale_button.clicked.connect(self.show_inventory)
         self.new_sale_layout.addWidget(self.new_sale_button)
 
         # Create the card-like frame for Add Product button
@@ -215,14 +216,14 @@ class DashboardPage(QWidget):
         self.add_product_layout = QVBoxLayout()
         self.add_product_frame.setLayout(self.add_product_layout)
 
-        self.add_product_button = QLabel("Inventory Alerts")
-        self.add_product_button.setAlignment(Qt.AlignCenter)
+        self.add_product_button = QPushButton("Inventory Alerts")
+        # self.add_product_button.setAlignment(Qt.AlignCenter)
         self.add_product_button.setStyleSheet("""
             color: white;
             font-weight: bold;
             font-size: 20px;
         """)
-
+        self.add_product_button.clicked.connect(self.show_history)
         self.add_product_layout.addWidget(self.add_product_button)
 
 
@@ -232,18 +233,6 @@ class DashboardPage(QWidget):
 
 # ======================================    end tw0 =======================================================================
 
-
-        # Top selling products section
-        self.top_selling_label = QLabel("Recent Activities")
-        self.top_selling_label.setStyleSheet("font-size: 18px; font-weight: bold; margin-top: 20px;")
-        self.content_layout.addWidget(self.top_selling_label)
-
-        self.top_selling_table = QTableWidget()
-        self.top_selling_table.setColumnCount(2)
-        self.top_selling_table.setHorizontalHeaderLabels(["Product", "Sales"])
-        self.top_selling_table.horizontalHeader().setStretchLastSection(True)
-        self.top_selling_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.content_layout.addWidget(self.top_selling_table)
 
     def add_sidebar_button(self, text, callback=None):
         button = QPushButton()
@@ -279,8 +268,8 @@ class DashboardPage(QWidget):
             #card {
                 background-color: #4e5052;
                 border-radius: 10px;
-                padding: 10px;
-                margin: 10px;
+                padding: 4px;
+                margin: 2px;
                 min-width: 100px;
                 max-width: 200px;
                 height: 100px;
@@ -288,16 +277,16 @@ class DashboardPage(QWidget):
         """)
 
         title_label = QLabel(title)
-        title_label.setStyleSheet("font-size:16px; color: #A8A8A8;")
+        title_label.setStyleSheet("font-size:16px; color: #A8A8A8; background-color: #4e5052;")#
         card_layout.addWidget(title_label)
 
         main_text_label = QLabel(main_text)
-        main_text_label.setStyleSheet("font-size: 15px; color: #ffffff; font-weight: bold;")
+        main_text_label.setStyleSheet("font-size: 15px; font-weight: bold;color: #ffffff; background-color: #4e5052;")# 
         card_layout.addWidget(main_text_label)
 
         if sub_text:
             sub_text_label = QLabel(sub_text)
-            sub_text_label.setStyleSheet("font-size: 14px; color: #A8A8A8;")
+            sub_text_label.setStyleSheet("font-size: 14px; color: #A8A8A8; background-color: #4e5052;")#
             card_layout.addWidget(sub_text_label)
 
         layout.addWidget(card, alignment=Qt.AlignTop)
