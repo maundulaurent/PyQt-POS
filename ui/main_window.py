@@ -23,7 +23,7 @@ class POSSystem(QMainWindow):
         
         
 
-        self.setGeometry(100, 50, 1100, 600)
+        self.setGeometry(100, 50, 1100, 500)
 
         self.central_widget = QStackedWidget()
         self.setCentralWidget(self.central_widget)

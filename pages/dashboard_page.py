@@ -3,6 +3,8 @@ from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtCore import Qt, QSize
 
 
+
+
         
 class DashboardPage(QWidget):
     def __init__(self,

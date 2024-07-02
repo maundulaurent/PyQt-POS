@@ -1,7 +1,15 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-
+from pages.dialogs import (
+    TransactionsDialog,
+    AccountsHistoryDialog,
+    OrdersHistoryDialog,
+    StocksHistoryDialog,
+    InventoryHistoryDialog,
+    AlertsHistoryDialog,
+    SalesHistoryDialog
+)
 class HistoryWidget(QWidget):
     def __init__(self, switch_to_dashboard_page):
         super().__init__()
@@ -61,33 +69,33 @@ class HistoryWidget(QWidget):
         quick_stats_layout = QHBoxLayout()
         self.content_layout.addLayout(quick_stats_layout)
 
-        self.add_card_to_layout(quick_stats_layout, "Transactions", "14 Transactions", "click for more..")
-        self.add_card_to_layout(quick_stats_layout, "Account History", "Change in account..", "click..")
-        self.add_card_to_layout(quick_stats_layout, "Orders History", "recent Orders", "see all orders...")
-        self.add_card_to_layout(quick_stats_layout, "Stocks History", "loaded Products", "check your stocks...")
+        self.add_card_to_layout(quick_stats_layout, "Transactions", "14 Transactions", "click for more..", self.show_transactions)
+        self.add_card_to_layout(quick_stats_layout, "Account History", "Change in account..", "click..", self.show_accounts_history_dialog)
+        self.add_card_to_layout(quick_stats_layout, "Orders History", "recent Orders", "see all orders...", self.show_orders_history_dialog)
+        self.add_card_to_layout(quick_stats_layout, "Stocks History", "loaded Products", "check your stocks...", self.show_stocks_history_dialog)
 
         # Quick Statistics Bar2
         quick_stats_layout2 = QHBoxLayout()
         self.content_layout.addLayout(quick_stats_layout2)
 
-        self.add_card_to_layout(quick_stats_layout2, "Inventory", "check categories", "Actions..")
-        self.add_card_to_layout(quick_stats_layout2, "Top Selling category", "Clothes category", "see order")
-        self.add_card_to_layout(quick_stats_layout2, " ", "Alerts", " ")
-        self.add_card_to_layout(quick_stats_layout2, " ", "", " ")
+        self.add_card_to_layout(quick_stats_layout2, "Inventory", "check categories", "Actions..", self.show_inventory_history_dialog)
+        self.add_card_to_layout(quick_stats_layout2, "Top Selling category", "Clothes category", "see order", self.show_modal)
+        self.add_card_to_layout(quick_stats_layout2, " ", "Alerts", " ", self.show_alerts_history_dialog)
+        self.add_card_to_layout(quick_stats_layout2, " ", "", " ", self.show_modal)
 
         # Quick Statistics Bar3
         quick_stats_layout3 = QHBoxLayout()
         self.content_layout.addLayout(quick_stats_layout3)
 
-        self.add_card_to_layout(quick_stats_layout3, "Sales", "Items sold", "Details..")
-        self.add_card_to_layout(quick_stats_layout3, "Total Sales Today", "New Americano Perfume", "30 units sold")
-        self.add_card_to_layout(quick_stats_layout3, "Pending Orders", "5 Orders", "...")
-        self.add_card_to_layout(quick_stats_layout3, "Stock Alerts", "3 Products", "...")
+        self.add_card_to_layout(quick_stats_layout3, "Sales", "Items sold", "Details..", self.show_sales_history_dialog)
+        self.add_card_to_layout(quick_stats_layout3, "Total Sales Today", "New Americano Perfume", "30 units sold", self.show_modal)
+        self.add_card_to_layout(quick_stats_layout3, "Pending Orders", "5 Orders", "...", self.show_modal)
+        self.add_card_to_layout(quick_stats_layout3, "Stock Alerts", "3 Products", "...", self.show_alerts_history_dialog)
 
         # Quick link to Dashboard
         quick_stats_layout4 = QHBoxLayout()
         self.content_layout.addLayout(quick_stats_layout4)
-        self.add_card_to_layout(quick_stats_layout4, "Quick Link", "<<Dashboard", "", self.switch_to_dashboard_page)
+        self.add_card_to_layout(quick_stats_layout4, "", "Dashboard", "click here", self.switch_to_dashboard_page)
 
         card = QFrame()
         card.setObjectName("card")
@@ -123,25 +131,55 @@ class HistoryWidget(QWidget):
             }
         """)
 
+        # Title as QLabel
         title_label = QLabel(title)
         title_label.setStyleSheet("font-size:16px; color: #A8A8A8; background-color: #4e5052;")
         card_layout.addWidget(title_label)
 
+        # Main text as QLabel
         main_text_label = QLabel(main_text)
         main_text_label.setStyleSheet("font-size: 15px; font-weight: bold; color: #ffffff; background-color: #4e5052;")
         card_layout.addWidget(main_text_label)
 
-        if sub_text:
+        # Subtext as QPushButton if function is provided
+        if function:
+            sub_text_button = QPushButton(sub_text)
+            sub_text_button.setStyleSheet("font-size: 14px; color: #A8A8A8; background-color: #4e5052; border: none; text-align: left;")
+            sub_text_button.clicked.connect(function)
+            card_layout.addWidget(sub_text_button)
+        else:
             sub_text_label = QLabel(sub_text)
             sub_text_label.setStyleSheet("font-size: 14px; color: #A8A8A8; background-color: #4e5052;")
             card_layout.addWidget(sub_text_label)
 
-        if function:
-            button = QPushButton()
-            button.setStyleSheet("background-color: transparent; border: none;")
-            button.clicked.connect(function)
-            card_layout.addWidget(button)
-            button.setGeometry(card.rect())  # Ensure the button covers the card entirely
-            button.lower()  # Ensure the button is behind other widgets
-
         layout.addWidget(card, alignment=Qt.AlignTop)
+
+    def show_modal(self):
+        QMessageBox.information(self, "Modal Popup", "Data wwill be filled in.")
+    def show_transactions(self):
+        dialog = TransactionsDialog(self)
+        dialog.exec_()
+
+    def show_accounts_history_dialog(self):
+        dialog = AccountsHistoryDialog(self)
+        dialog.exec_()
+
+    def show_orders_history_dialog(self):
+        dialog = OrdersHistoryDialog(self)
+        dialog.exec_()
+
+    def show_stocks_history_dialog(self):
+        dialog = StocksHistoryDialog(self)
+        dialog.exec_()
+
+    def show_inventory_history_dialog(self):
+        dialog = InventoryHistoryDialog(self)
+        dialog.exec_()
+
+    def show_alerts_history_dialog(self):
+        dialog = AlertsHistoryDialog(self)
+        dialog.exec_()
+
+    def show_sales_history_dialog(self):
+        dialog = SalesHistoryDialog(self)
+        dialog.exec_()
