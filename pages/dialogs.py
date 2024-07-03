@@ -247,9 +247,83 @@ class OrdersHistoryDialog(BaseHistoryDialog):
         super(OrdersHistoryDialog, self).__init__("orders_history", "Orders History", parent)
 
 
-class StocksHistoryDialog(BaseHistoryDialog):
-    def __init__(self, parent=None):
-        super(StocksHistoryDialog, self).__init__("stocks_history", "Stocks History", parent)
+class StocksHistoryDialog(QDialog):
+    def __init__(self, table_name, parent=None):
+        super().__init__(parent)
+        self.table_name = table_name
+        self.setWindowTitle("Activites on Stocks and Products History")
+        self.resize(850, 400)
+
+        self.layout = QVBoxLayout(self)
+        
+        self.filter_combo = QComboBox(self)
+        self.filter_combo.addItems(["Today", "This Week", "This Month", "All Activities"])
+        self.filter_combo.currentIndexChanged.connect(self.load_data)
+        self.layout.addWidget(self.filter_combo)
+
+        self.history_table = QTableWidget(self)
+        self.history_table.setColumnCount(5)
+        self.history_table.setHorizontalHeaderLabels(["Product ID", "Product Name", "Category", "Description", "Date"])
+        self.layout.addWidget(self.history_table)
+
+        self.init_db()
+        self.load_data()
+
+    def init_db(self):
+        # Connect to SQLite database
+        self.conn = sqlite3.connect('products.db')
+        self.cursor = self.conn.cursor()
+
+        # Check if table exists, and create it if not
+        self.cursor.execute(f"""
+            CREATE TABLE IF NOT EXISTS stocks_history (
+                product_id INTEGER PRIMARY KEY,
+                name TEXT,
+                category TEXT,
+                description TEXT,
+                date TEXT
+            )
+        """)
+        self.conn.commit()
+
+    def load_data(self):
+        # Clear the table
+        self.history_table.setRowCount(0)
+
+        # Get the filter option
+        filter_option = self.filter_combo.currentText()
+
+        # Generate SQL query based on filter option
+        if filter_option == "Today":
+            sql_query = f"SELECT * FROM stocks_history WHERE date(date) = date('now') ORDER BY date DESC"
+        elif filter_option == "This Week":
+            sql_query = f"SELECT * FROM stocks_history WHERE date(date) >= date('now', 'weekday 0', '-7 days') ORDER BY date DESC"
+        elif filter_option == "This Month":
+            sql_query = f"SELECT * FROM stocks_history WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now') ORDER BY date DESC"
+        else:
+            sql_query = f"SELECT * FROM stocks_history ORDER BY date DESC"
+
+        # Execute the query and load data into the table
+        self.cursor.execute(sql_query)
+        records = self.cursor.fetchall()
+
+        if not records:
+            self.history_table.setRowCount(1)
+            no_data_item = QTableWidgetItem("No data to display")
+            no_data_item.setForeground(QBrush(Qt.black))  # Set text color to black
+            self.history_table.setItem(0, 0, no_data_item)
+            self.history_table.setSpan(0, 0, 1, 5)  # Span across all columns
+        else:
+            self.history_table.setRowCount(len(records))
+            for row_index, row_data in enumerate(records):
+                for column_index, column_data in enumerate(row_data):
+                    self.history_table.setItem(row_index, column_index, QTableWidgetItem(str(column_data)))
+
+        # Adjust column widths
+        header = self.history_table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch)
+        for i in range(self.history_table.columnCount()):
+            header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
 
 
 class InventoryHistoryDialog(BaseHistoryDialog):

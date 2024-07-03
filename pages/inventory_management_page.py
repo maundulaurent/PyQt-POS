@@ -126,7 +126,7 @@ class InventoryManagementPage(QWidget):
 
         # Set up main window
         self.setWindowTitle("Inventory Management")
-        self.setGeometry(100, 100, 800, 600)
+        # self.setGeometry(100, 100, 800, 400)
         self.show()
 
     def load_products(self):

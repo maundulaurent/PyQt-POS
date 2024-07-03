@@ -96,6 +96,10 @@ class DashboardPage(QWidget):
         self.content_layout = QVBoxLayout()
         self.content_area.setLayout(self.content_layout)
         self.main_layout.addWidget(self.content_area)
+        # self.content_layout.setSpacing(0)  # Remove vertical spacing
+        # self.content_layout.setContentsMargins(0, 0, 0, 0)  # Remove all margins (left, top, right, bottom)
+
+
 
         # Header Section
         header_layout = QHBoxLayout()

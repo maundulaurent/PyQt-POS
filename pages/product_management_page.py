@@ -2,7 +2,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import sqlite3
-import time  
+import time
+import datetime
 
 
 class ProductManagementPage(QWidget):
@@ -138,7 +139,7 @@ class ProductManagementPage(QWidget):
 
         # Set up main window
         self.setWindowTitle("Inventory Management")
-        self.setGeometry(100, 100, 800, 600)
+        # self.setGeometry(100, 100, 800, 600)
         self.show()
 
         self.btn_search.clicked.connect(self.search_products)
@@ -161,7 +162,6 @@ class ProductManagementPage(QWidget):
                 self.product_table.setItem(i, 3, QTableWidgetItem(str(product[3])))  # Stock Level
 
         self.product_table.resizeColumnsToContents()
-
     def add_new_product(self):
         dialog = AddProductDialog(self)
         dialog.resize(400, 300)
@@ -178,6 +178,12 @@ class ProductManagementPage(QWidget):
                 self.cursor.execute("INSERT INTO products (id, name, category_id, stock) VALUES (?, ?, ?, ?)",
                                     (product_id, product_name, product_category, stock_level))
                 self.conn.commit()
+
+                current_datetime = datetime.datetime.now()
+                formatted_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
+
+                # Log the activity
+                self.log_stock_activity("Added", product_name, product_category, product_id)
 
                 # Update the product list in your application
                 self.load_products()
@@ -198,12 +204,24 @@ class ProductManagementPage(QWidget):
 
         row = selected_rows[0].row()
         product_id = self.product_table.item(row, 1).text()
+        product_name = self.product_table.item(row, 0).text()
+        product_category = self.product_table.item(row, 2).text()
+
         dialog = AddProductDialog(self, product_id=product_id)  # Pass product_id for editing
         dialog.setWindowTitle("Edit Product")
 
         if dialog.exec_():
-            # No need to fetch data here; dialog handles it internally
+            # Fetch the product name and category for logging
+            new_product_name = dialog.product_name_input.text()
+            new_product_category = dialog.product_category_input.currentText()
+
+            # Log the activity in stocks_history
+            self.log_stock_activity("Edited", new_product_name, new_product_category, product_id)
+
             self.load_products()
+            QMessageBox.information(self, "Product Updated", "Product successfully updated.")
+
+
 
 
 
@@ -217,12 +235,16 @@ class ProductManagementPage(QWidget):
         row = selected_rows[0].row()
         product_id = self.product_table.item(row, 1).text()
         product_name = self.product_table.item(row, 0).text()
+        product_category = self.product_table.item(row, 2).text()
 
         confirm = QMessageBox.question(self, "Confirm Deletion", f"Are you sure you want to delete the item:\n\n{product_name} (ID: {product_id})",
-                                       QMessageBox.Yes | QMessageBox.No)
+                                    QMessageBox.Yes | QMessageBox.No)
         if confirm == QMessageBox.Yes:
             self.cursor.execute("DELETE FROM products WHERE id=?", (product_id,))
             self.conn.commit()
+
+            # Log the activity in stocks_history
+            self.log_stock_activity("Deleted", product_name, product_category,product_id)
 
             self.load_products()
             QMessageBox.information(self, "Product Deleted", "Product successfully deleted.")
@@ -244,6 +266,27 @@ class ProductManagementPage(QWidget):
             QMessageBox.warning(self, "Empty Search", "Please enter a product name to search.")
 
     # Connect search button to search_products method in init_ui method
+
+    def log_stock_activity(self, action, product_name, product_category, product_id):
+        date = time.strftime("%Y-%m-%d %H:%M:%S")  # Current timestamp
+        description = f"{action} product {product_name} (ID: {product_id})"
+        
+        # Check if table exists, and create it if not
+        self.cursor.execute(f"""
+            CREATE TABLE IF NOT EXISTS stocks_history (
+                product_id INTEGER PRIMARY KEY,
+                name TEXT,
+                category TEXT,
+                description TEXT,
+                date TEXT
+            )
+        """)
+
+        self.cursor.execute("INSERT INTO stocks_history (product_id, name, category, description, date) VALUES (?, ?, ?, ?, ?)",
+                            (product_id, product_name, product_category, description, date))
+        self.conn.commit()
+
+
     
 
 

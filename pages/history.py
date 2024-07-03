@@ -123,7 +123,7 @@ class HistoryWidget(QWidget):
             #card {
                 background-color: #4e5052;
                 border-radius: 10px;
-                padding: 10px;
+                padding: 15px;
                 margin: 5px;
                 min-width: 100px;
                 max-width: 200px;
