@@ -241,11 +241,90 @@ class AccountsHistoryDialog(BaseHistoryDialog):
     def __init__(self, parent=None):
         super(AccountsHistoryDialog, self).__init__("accounts_history", "Accounts History", parent)
 
-
-class OrdersHistoryDialog(BaseHistoryDialog):
+class OrdersHistoryDialog(QDialog):
     def __init__(self, parent=None):
-        super(OrdersHistoryDialog, self).__init__("orders_history", "Orders History", parent)
+        super(OrdersHistoryDialog, self).__init__(parent)
+        self.setWindowTitle("Orders History")
+        self.resize(900, 500)
 
+        self.layout = QVBoxLayout(self)
+
+        # Add a combo box for filter options (though we'll display all records now)
+        self.filter_combo = QComboBox(self)
+        self.filter_combo.addItems(["All Orders"])  # Only "All Orders" option
+        self.filter_combo.setDisabled(True)  # Disable the filter combo box
+        self.layout.addWidget(self.filter_combo)
+
+        # Create the table for order history
+        self.history_table = QTableWidget(self)
+        self.history_table.setColumnCount(10)
+        self.history_table.setHorizontalHeaderLabels([
+            "Order Category", "Product", "Quantity", "Date of Order",
+            "Ordered By", "Order Completed On", "Mode of Payment", "Who Paid",
+            "Amount Received", "Confirmed By"
+        ])
+        self.layout.addWidget(self.history_table)
+
+        self.init_db()
+        self.load_data()
+
+    def init_db(self):
+        # Connect to SQLite database
+        self.conn = sqlite3.connect('products.db')
+        self.cursor = self.conn.cursor()
+
+        # Ensure `orders_history` table has the correct columns
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS orders_history (
+                category TEXT,
+                product TEXT,
+                quantity TEXT,
+                date_of_order TEXT,
+                ordered_by TEXT,
+                order_completed_on TEXT,
+                mode_of_payment TEXT,
+                who_paid TEXT,
+                amount_received REAL,
+                confirmed_by TEXT
+            )
+        """)
+        self.conn.commit()
+
+    def load_data(self):
+        # Clear the table
+        self.history_table.setRowCount(0)
+
+        # Get all orders
+        sql_query = """
+            SELECT category, product, quantity, date_of_order, ordered_by, 
+                   order_completed_on, mode_of_payment, who_paid, amount_received, confirmed_by
+            FROM orders_history
+            ORDER BY date_of_order DESC
+        """
+
+        # Execute the query and load data into the table
+        self.cursor.execute(sql_query)
+        records = self.cursor.fetchall()
+
+        if not records:
+            self.history_table.setRowCount(1)
+            no_data_item = QTableWidgetItem("No data to display")
+            no_data_item.setForeground(QBrush(Qt.black))  # Set text color to black
+            self.history_table.setItem(0, 0, no_data_item)
+            self.history_table.setSpan(0, 0, 1, 10)  # Span across all columns
+        else:
+            self.history_table.setRowCount(len(records))
+            for row_index, row_data in enumerate(records):
+                for column_index, column_data in enumerate(row_data):
+                    item = QTableWidgetItem(str(column_data))
+                    item.setForeground(QBrush(Qt.black))  # Set text color to black
+                    self.history_table.setItem(row_index, column_index, item)
+
+        # Adjust column widths
+        header = self.history_table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch)
+        for i in range(self.history_table.columnCount()):
+            header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
 
 class StocksHistoryDialog(QDialog):
     def __init__(self, table_name, parent=None):
