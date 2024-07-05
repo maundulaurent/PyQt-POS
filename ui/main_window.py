@@ -52,6 +52,7 @@ class POSSystem(QMainWindow):
             self.switch_to_dashboard_page
         )
         self.orders_page = OrdersPage()
+        
 
         self.central_widget.addWidget(self.user_login)#Stack this number one
         self.central_widget.addWidget(self.welcome_page)
