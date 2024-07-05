@@ -3,7 +3,6 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from pages.dialogs import (
     TransactionsDialog,
-    AccountsHistoryDialog,
     OrdersHistoryDialog,
     StocksHistoryDialog,
     InventoryHistoryDialog,
@@ -70,28 +69,19 @@ class HistoryWidget(QWidget):
         self.content_layout.addLayout(quick_stats_layout)
 
         self.add_card_to_layout(quick_stats_layout, "Transactions", "14 Transactions", "click for more..", self.show_transactions)
-        self.add_card_to_layout(quick_stats_layout, "Account History", "Change in account..", "click..", self.show_accounts_history_dialog)
+        self.add_card_to_layout(quick_stats_layout, "Sales", "Items sold", "Details..", self.show_sales_history_dialog)
         self.add_card_to_layout(quick_stats_layout, "Orders History", "recent Orders", "see all orders...", self.show_orders_history_dialog)
         self.add_card_to_layout(quick_stats_layout, "Stocks History", "loaded Products", "check your stocks...", self.show_stocks_history_dialog)
 
         # Quick Statistics Bar2
         quick_stats_layout2 = QHBoxLayout()
         self.content_layout.addLayout(quick_stats_layout2)
-
         self.add_card_to_layout(quick_stats_layout2, "Inventory", "check categories", "Actions..", self.show_inventory_history_dialog)
         self.add_card_to_layout(quick_stats_layout2, "Top Selling category", "Clothes category", "see order", self.show_modal)
         self.add_card_to_layout(quick_stats_layout2, " ", "Alerts", " ", self.show_alerts_history_dialog)
         self.add_card_to_layout(quick_stats_layout2, " ", "", " ", self.show_modal)
 
-        # Quick Statistics Bar3
-        quick_stats_layout3 = QHBoxLayout()
-        self.content_layout.addLayout(quick_stats_layout3)
-
-        self.add_card_to_layout(quick_stats_layout3, "Sales", "Items sold", "Details..", self.show_sales_history_dialog)
-        self.add_card_to_layout(quick_stats_layout3, "Total Sales Today", "New Americano Perfume", "30 units sold", self.show_modal)
-        self.add_card_to_layout(quick_stats_layout3, "Pending Orders", "5 Orders", "...", self.show_modal)
-        self.add_card_to_layout(quick_stats_layout3, "Stock Alerts", "3 Products", "...", self.show_alerts_history_dialog)
-
+        
         # Quick link to Dashboard
         quick_stats_layout4 = QHBoxLayout()
         self.content_layout.addLayout(quick_stats_layout4)
@@ -158,10 +148,6 @@ class HistoryWidget(QWidget):
         QMessageBox.information(self, "Modal Popup", "Data wwill be filled in.")
     def show_transactions(self):
         dialog = TransactionsDialog(self)
-        dialog.exec_()
-
-    def show_accounts_history_dialog(self):
-        dialog = AccountsHistoryDialog(self)
         dialog.exec_()
 
     def show_orders_history_dialog(self):

@@ -16,19 +16,34 @@ class ProductManagementPage(QWidget):
 
         # Initialize UI
         self.init_ui()
+        self.init_db()
 
     def init_db(self):
         self.conn = sqlite3.connect('products.db')
         self.cursor = self.conn.cursor()
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS categories
-                               (id INTEGER PRIMARY KEY, name TEXT UNIQUE)''')
+                            (id INTEGER PRIMARY KEY, name TEXT UNIQUE)''')
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS products
-                               (id TEXT PRIMARY KEY, name TEXT, price INTEGER, category_id INTEGER, stock INTEGER,
+                            (id TEXT PRIMARY KEY, name TEXT, price INTEGER, category_id INTEGER, stock INTEGER,
                                 FOREIGN KEY (category_id) REFERENCES categories (id))''')
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS sales_history
-                               (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, cashier TEXT, total_amount REAL, items TEXT, payment_method TEXT)''')
+                            (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, cashier TEXT, total_amount REAL, items TEXT, payment_method TEXT)''')
+        
+        # Create a new table for stock history without UNIQUE constraint on product_id
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS stocks_history_new
+                            (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id TEXT, name TEXT, category TEXT, description TEXT, date TEXT)''')
+
+        # Copy data from old table to new table
+        self.cursor.execute('''INSERT INTO stocks_history_new (product_id, name, category, description, date)
+                            SELECT product_id, name, category, description, date FROM stocks_history''')
+
+        # Drop the old table
+        self.cursor.execute('DROP TABLE IF EXISTS stocks_history')
+
+        # Rename the new table to the old table's name
+        self.cursor.execute('ALTER TABLE stocks_history_new RENAME TO stocks_history')
+
         self.conn.commit()
-        self.load_categories()
         self.load_products()
 
     def init_ui(self):
@@ -106,8 +121,8 @@ class ProductManagementPage(QWidget):
 
         # Initialize table to display products
         self.product_table = QTableWidget()
-        self.product_table.setColumnCount(4)
-        self.product_table.setHorizontalHeaderLabels(["Product Name", "Product ID", "Product Category", "Stock Level"])
+        self.product_table.setColumnCount(5)
+        self.product_table.setHorizontalHeaderLabels(["Product Name", "Product ID", "Product Category", "Stock Level", "Price per Product"])
         self.product_list_layout.addWidget(self.product_table)
 
         # Buttons for product operations
@@ -144,15 +159,23 @@ class ProductManagementPage(QWidget):
 
         self.btn_search.clicked.connect(self.search_products)
 
+    def add_new_product(self):
+        dialog = AddProductDialog(self)
+        dialog.resize(400, 300)
+        if dialog.exec_():  # User clicked OK
+            self.load_products()
+            QMessageBox.information(self, "Product Added", "Product successfully added.")
+        dialog.deleteLater()
+
     def load_products(self):
         self.product_table.clearContents()
-        self.cursor.execute("SELECT name, id, category_id, stock FROM products")
+        self.cursor.execute("SELECT name, id, category_id, stock, price FROM products")
         products = self.cursor.fetchall()
 
         if not products:
             self.product_table.setRowCount(1)
-            self.product_table.setItem(0, 0, QTableWidgetItem("No Items in your Repository, Please add to display"))
-            self.product_table.setSpan(0, 0, 1, 4)  # Span across all columns
+            self.product_table.setItem(0, 0, QTableWidgetItem("No Items in your Repository, Please add items to display"))
+            self.product_table.setSpan(0, 0, 1, 5)  # Span across all columns
         else:
             self.product_table.setRowCount(len(products))
             for i, product in enumerate(products):
@@ -160,41 +183,9 @@ class ProductManagementPage(QWidget):
                 self.product_table.setItem(i, 1, QTableWidgetItem(product[1]))  # Product ID
                 self.product_table.setItem(i, 2, QTableWidgetItem(str(product[2])))  # Category ID
                 self.product_table.setItem(i, 3, QTableWidgetItem(str(product[3])))  # Stock Level
+                self.product_table.setItem(i, 4, QTableWidgetItem(str(product[4])))  # Product Price
 
         self.product_table.resizeColumnsToContents()
-    def add_new_product(self):
-        dialog = AddProductDialog(self)
-        dialog.resize(400, 300)
-        if dialog.exec_():  # User clicked OK
-            product_name = dialog.product_name_input.text()
-            product_category = dialog.product_category_input.currentText()
-            stock_level = dialog.stock_level_input.text()
-
-            try:
-                # Generate a unique product ID (example using current timestamp)
-                product_id = str(int(time.time()))  # Example of generating ID
-
-                # Insert the new product into the database
-                self.cursor.execute("INSERT INTO products (id, name, category_id, stock) VALUES (?, ?, ?, ?)",
-                                    (product_id, product_name, product_category, stock_level))
-                self.conn.commit()
-
-                current_datetime = datetime.datetime.now()
-                formatted_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
-
-                # Log the activity
-                self.log_stock_activity("Added", product_name, product_category, product_id)
-
-                # Update the product list in your application
-                self.load_products()
-
-                QMessageBox.information(self, "Product Added", "Product successfully added.")
-
-            except sqlite3.IntegrityError as e:
-                QMessageBox.warning(self, "Database Error", "Failed to add product. Please check if the product already exists.")
-
-        dialog.deleteLater()
-
 
     def edit_product(self):
         selected_rows = self.product_table.selectedItems()
@@ -204,26 +195,11 @@ class ProductManagementPage(QWidget):
 
         row = selected_rows[0].row()
         product_id = self.product_table.item(row, 1).text()
-        product_name = self.product_table.item(row, 0).text()
-        product_category = self.product_table.item(row, 2).text()
-
-        dialog = AddProductDialog(self, product_id=product_id)  # Pass product_id for editing
-        dialog.setWindowTitle("Edit Product")
-
+        
+        dialog = EditProductDialog(self, product_id=product_id)
         if dialog.exec_():
-            # Fetch the product name and category for logging
-            new_product_name = dialog.product_name_input.text()
-            new_product_category = dialog.product_category_input.currentText()
-
-            # Log the activity in stocks_history
-            self.log_stock_activity("Edited", new_product_name, new_product_category, product_id)
-
             self.load_products()
             QMessageBox.information(self, "Product Updated", "Product successfully updated.")
-
-
-
-
 
 
     def delete_product(self):
@@ -237,54 +213,52 @@ class ProductManagementPage(QWidget):
         product_name = self.product_table.item(row, 0).text()
         product_category = self.product_table.item(row, 2).text()
 
-        confirm = QMessageBox.question(self, "Confirm Deletion", f"Are you sure you want to delete the item:\n\n{product_name} (ID: {product_id})",
-                                    QMessageBox.Yes | QMessageBox.No)
-        if confirm == QMessageBox.Yes:
-            self.cursor.execute("DELETE FROM products WHERE id=?", (product_id,))
+        reply = QMessageBox.question(self, "Delete Product",
+                                     f"Are you sure you want to delete the product '{product_name}'?",
+                                     QMessageBox.Yes | QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            self.cursor.execute("DELETE FROM products WHERE id = ?", (product_id,))
             self.conn.commit()
 
             # Log the activity in stocks_history
-            self.log_stock_activity("Deleted", product_name, product_category,product_id)
+            self.log_stock_activity("Deleted", product_name, product_category, product_id)
 
             self.load_products()
             QMessageBox.information(self, "Product Deleted", "Product successfully deleted.")
-    
 
-    # Add search functionality in ProductManagementPage class
     def search_products(self):
-        search_text, ok = QInputDialog.getText(self, "Search Products", "Enter product name:")
-        if ok and search_text:
-            self.cursor.execute("SELECT name, id, category_id, stock FROM products WHERE name LIKE ?", ('%' + search_text + '%',))
-            products = self.cursor.fetchall()
+        search_text = self.btn_search.text().strip().lower()
+
+        if not search_text:
+            QMessageBox.warning(self, "Empty Search Query", "Please enter a search query.")
+            return
+
+        self.product_table.clearContents()
+        self.cursor.execute("SELECT name, id, category_id, stock, price FROM products WHERE lower(name) LIKE ? OR id LIKE ?", ('%' + search_text + '%', '%' + search_text + '%'))
+        products = self.cursor.fetchall()
+
+        if not products:
+            self.product_table.setRowCount(1)
+            self.product_table.setItem(0, 0, QTableWidgetItem("No Items matching your search."))
+            self.product_table.setSpan(0, 0, 1, 4)  # Span across all columns
+        else:
             self.product_table.setRowCount(len(products))
             for i, product in enumerate(products):
                 self.product_table.setItem(i, 0, QTableWidgetItem(product[0]))  # Product Name
                 self.product_table.setItem(i, 1, QTableWidgetItem(product[1]))  # Product ID
                 self.product_table.setItem(i, 2, QTableWidgetItem(str(product[2])))  # Category ID
                 self.product_table.setItem(i, 3, QTableWidgetItem(str(product[3])))  # Stock Level
-        elif ok and not search_text:
-            QMessageBox.warning(self, "Empty Search", "Please enter a product name to search.")
+                self.product_table.setItem(i, 4, QTableWidgetItem(str(product[4])))  # Product Price
 
-    # Connect search button to search_products method in init_ui method
+        self.product_table.resizeColumnsToContents()
 
     def log_stock_activity(self, action, product_name, product_category, product_id):
-        date = time.strftime("%Y-%m-%d %H:%M:%S")  # Current timestamp
-        description = f"{action} product {product_name} (ID: {product_id})"
-        
-        # Check if table exists, and create it if not
-        self.cursor.execute(f"""
-            CREATE TABLE IF NOT EXISTS stocks_history (
-                product_id INTEGER PRIMARY KEY,
-                name TEXT,
-                category TEXT,
-                description TEXT,
-                date TEXT
-            )
-        """)
-
+        current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.cursor.execute("INSERT INTO stocks_history (product_id, name, category, description, date) VALUES (?, ?, ?, ?, ?)",
-                            (product_id, product_name, product_category, description, date))
+                            (product_id, product_name, product_category, action, current_datetime))
         self.conn.commit()
+
+
 
 
     
@@ -350,11 +324,15 @@ class AddProductDialog(QDialog):
                 parent.cursor.execute("INSERT INTO products (id, name, price, category_id, stock) VALUES (?, ?, ?, ?, ?)",
                                       (product_id, product_name, product_price, product_category, stock_level))
                 parent.conn.commit()
+
+                parent.log_stock_activity("Added", product_name, product_category, product_id)
             else:
                 # Update existing product in the database
                 parent.cursor.execute("UPDATE products SET name=?, price=?, category_id=?, stock=? WHERE id=?",
                                       (product_name, product_price, product_category, stock_level, self.product_id))
                 parent.conn.commit()
+
+                parent.log_stock_activity("Edited", product_name, product_category, self.product_id)
 
             # Update the product list in your application
             parent.load_products()
@@ -371,3 +349,68 @@ class AddProductDialog(QDialog):
         for category_id, category_name in categories:
             self.product_category_input.addItem(f"{category_name} ({category_id})")
 
+
+class EditProductDialog(QDialog):
+    def __init__(self, parent=None, product_id=None):
+        super().__init__(parent)
+        self.product_id = product_id
+        self.setWindowTitle("Edit Product")
+
+        layout = QVBoxLayout(self)
+
+        self.product_name_input = QLineEdit()
+        layout.addWidget(QLabel("Product Name:"))
+        layout.addWidget(self.product_name_input)
+
+        self.product_price_input = QLineEdit()
+        layout.addWidget(QLabel("Product Price:"))
+        layout.addWidget(self.product_price_input)
+
+        self.product_category_input = QComboBox()
+        self.populate_categories()
+        layout.addWidget(QLabel("Product Category:"))
+        layout.addWidget(self.product_category_input)
+
+        self.stock_level_input = QLineEdit()
+        layout.addWidget(QLabel("Stock Level:"))
+        layout.addWidget(self.stock_level_input)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
+        buttons.accepted.connect(self.accept_and_validate)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+        if product_id:
+            parent.cursor.execute("SELECT name, price, category_id, stock FROM products WHERE id=?", (product_id,))
+            product_data = parent.cursor.fetchone()
+            self.product_name_input.setText(product_data[0])
+            self.product_price_input.setText(str(product_data[1]))
+            self.product_category_input.setCurrentIndex(self.product_category_input.findText(str(product_data[2])))
+            self.stock_level_input.setText(str(product_data[3]))
+
+    def accept_and_validate(self):
+        product_name = self.product_name_input.text().strip()
+        product_price = self.product_price_input.text().strip()
+        product_category = self.product_category_input.currentText()
+        stock_level = self.stock_level_input.text().strip()
+
+        if product_name == "" or product_price == "" or product_category == "":
+            QMessageBox.warning(self, "Incomplete Information", "Please fill in all fields.")
+        else:
+            parent = self.parent()
+            parent.cursor.execute("UPDATE products SET name=?, price=?, category_id=?, stock=? WHERE id=?",
+                                  (product_name, product_price, product_category, stock_level, self.product_id))
+            parent.conn.commit()
+
+            parent.log_stock_activity("Edited", product_name, product_category, self.product_id)
+            parent.load_products()
+
+            QMessageBox.information(self, "Product Updated", "Product successfully updated.")
+            self.accept()
+
+    def populate_categories(self):
+        parent = self.parent()
+        parent.cursor.execute("SELECT id, name FROM categories")
+        categories = parent.cursor.fetchall()
+        for category_id, category_name in categories:
+            self.product_category_input.addItem(f"{category_name} ({category_id})")

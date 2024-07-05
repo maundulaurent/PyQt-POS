@@ -237,10 +237,6 @@ class TransactionsDialog(BaseHistoryDialog):
         super(TransactionsDialog, self).__init__("transactions", "Transactions", parent)
 
 
-class AccountsHistoryDialog(BaseHistoryDialog):
-    def __init__(self, parent=None):
-        super(AccountsHistoryDialog, self).__init__("accounts_history", "Accounts History", parent)
-
 class OrdersHistoryDialog(QDialog):
     def __init__(self, parent=None):
         super(OrdersHistoryDialog, self).__init__(parent)
@@ -330,7 +326,7 @@ class StocksHistoryDialog(QDialog):
     def __init__(self, table_name, parent=None):
         super().__init__(parent)
         self.table_name = table_name
-        self.setWindowTitle("Activites on Stocks and Products History")
+        self.setWindowTitle("Activities on Stocks and Products History")
         self.resize(850, 400)
 
         self.layout = QVBoxLayout(self)
@@ -356,7 +352,8 @@ class StocksHistoryDialog(QDialog):
         # Check if table exists, and create it if not
         self.cursor.execute(f"""
             CREATE TABLE IF NOT EXISTS stocks_history (
-                product_id INTEGER PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                product_id TEXT,
                 name TEXT,
                 category TEXT,
                 description TEXT,
@@ -374,13 +371,13 @@ class StocksHistoryDialog(QDialog):
 
         # Generate SQL query based on filter option
         if filter_option == "Today":
-            sql_query = f"SELECT * FROM stocks_history WHERE date(date) = date('now') ORDER BY date DESC"
+            sql_query = f"SELECT product_id, name, category, description, date FROM stocks_history WHERE date(date) = date('now') ORDER BY date DESC"
         elif filter_option == "This Week":
-            sql_query = f"SELECT * FROM stocks_history WHERE date(date) >= date('now', 'weekday 0', '-7 days') ORDER BY date DESC"
+            sql_query = f"SELECT product_id, name, category, description, date FROM stocks_history WHERE date(date) >= date('now', 'weekday 0', '-7 days') ORDER BY date DESC"
         elif filter_option == "This Month":
-            sql_query = f"SELECT * FROM stocks_history WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now') ORDER BY date DESC"
+            sql_query = f"SELECT product_id, name, category, description, date FROM stocks_history WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now') ORDER BY date DESC"
         else:
-            sql_query = f"SELECT * FROM stocks_history ORDER BY date DESC"
+            sql_query = f"SELECT product_id, name, category, description, date FROM stocks_history ORDER BY date DESC"
 
         # Execute the query and load data into the table
         self.cursor.execute(sql_query)
@@ -403,6 +400,7 @@ class StocksHistoryDialog(QDialog):
         header.setSectionResizeMode(QHeaderView.Stretch)
         for i in range(self.history_table.columnCount()):
             header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
+
 
 
 class InventoryHistoryDialog(BaseHistoryDialog):
