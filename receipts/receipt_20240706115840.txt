@@ -1,0 +1,6 @@
+Date: 2024-07-06 11:58:40
+Cashier: Cashier Name
+Payment Method: Mpesa
+Total Amount: $2400.00
+1719050712 | Pishori | $1200 | Qty: 1
+1719053433 | Laptop | $1200 | Qty: 1

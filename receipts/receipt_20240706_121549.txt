@@ -1,0 +1,9 @@
+Receipt
+Date: 2024-07-06 12:15:46
+Cashier: Cashier Name
+Payment Method: Cash
+Total Amount: $2400.00
+
+Items:
+1719050712 - Pishori - $1200.00 x 1
+1719053433 - Laptop - $1200.00 x 1

@@ -1,0 +1,10 @@
+Receipt
+Date: 2024-07-06 12:29:43
+Cashier: Cashier Name
+Payment Method: Cash
+Total Amount: $76.00
+
+Items:
+1719050323 - muselekuu - $14.00 x 2
+1719050606 - ngima - $50.00 x 2
+1719051133 - product weeeee - $12.00 x 2

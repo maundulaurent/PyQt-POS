@@ -5,8 +5,6 @@ import sqlite3
 from datetime import datetime
 import os
 import json
-import requests
-
 
 
 class CheckoutPage(QWidget):
@@ -64,13 +62,9 @@ class CheckoutPage(QWidget):
         self.receipt_area.setReadOnly(True)
         self.layout.addWidget(self.receipt_area)
 
-        # Print Receipt Button
-        self.print_receipt_button = QPushButton('Print Receipt')
-        self.layout.addWidget(self.print_receipt_button)
-
-        # Finish Sale Button
-        self.finish_sale_button = QPushButton('Finish Sale')
-        self.layout.addWidget(self.finish_sale_button)
+        # CashOut Sale Button
+        self.cashout_sale_button = QPushButton('CashOut Sale')
+        self.layout.addWidget(self.cashout_sale_button)
 
         self.setLayout(self.layout)
 
@@ -79,16 +73,33 @@ class CheckoutPage(QWidget):
         self.clear_search_button.clicked.connect(self.load_all_items)
         self.scan_button.clicked.connect(self.scan_item)
         self.all_items_list.itemClicked.connect(self.select_item)
-        self.cash_button.clicked.connect(self.process_payment)
-        # self.mpesa_button.clicked.connect(self.process_payment)
+        self.cash_button.clicked.connect(self.process_cash_payment)
         self.mpesa_button.clicked.connect(self.show_mpesa_dialog)
-        self.print_receipt_button.clicked.connect(self.print_receipt)
-        self.finish_sale_button.clicked.connect(self.finish_sale)
+        self.cashout_sale_button.clicked.connect(self.finish_sale)
 
         # Load all items
         self.load_all_items()
+        self.init_db()
 
-    
+    def init_db(self):
+        # Ensure `sales_history` table has the correct columns
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS sales_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT,
+                cashier TEXT,
+                total_amount REAL,
+                items TEXT,
+                payment_method TEXT,
+                item_id TEXT,
+                item_name TEXT,
+                price REAL,
+                quantity INTEGER,
+                date_of_sale TEXT
+            )
+        """)
+        self.conn.commit()
+
     def load_all_items(self):
         self.all_items_list.clear()
         self.cursor.execute("SELECT id, name, price FROM products")
@@ -123,209 +134,194 @@ class CheckoutPage(QWidget):
         self.search_item()
 
     def select_item(self, item):
-        item_text = item.text().split(' - ')
-        item_id = item_text[0]
-        item_name = item_text[1]
-        item_price = item_text[2].strip('$')
-        self.add_item((item_id, item_name, item_price, 1))
+        item_id = item.text().split(' - ')[0]
+        self.cursor.execute("SELECT id, name, price FROM products WHERE id = ?", (item_id,))
+        product = self.cursor.fetchone()
+        if product:
+            item_id, item_name, item_price = product
+            item_found = False
+            for row in range(self.item_table.rowCount()):
+                if self.item_table.item(row, 0).text() == item_id:
+                    quantity_widget = self.item_table.cellWidget(row, 3)
+                    quantity_widget.setValue(quantity_widget.value() + 1)  # Increase the quantity
+                    item_found = True
+                    break
 
-    def add_item(self, item):
-        row_position = self.item_table.rowCount()
-        self.item_table.insertRow(row_position)
-        for i, value in enumerate(item[:-1]):
-            self.item_table.setItem(row_position, i, QTableWidgetItem(str(value)))
-        # Add quantity spinner
-        quantity_spinner = QSpinBox()
-        quantity_spinner.setValue(item[-1])
-        quantity_spinner.setMinimum(1)
-        quantity_spinner.valueChanged.connect(self.update_total)
-        self.item_table.setCellWidget(row_position, 3, quantity_spinner)
-        # Add remove button
-        remove_button = QPushButton('Remove')
-        remove_button.clicked.connect(self.remove_item)
-        self.item_table.setCellWidget(row_position, 4, remove_button)
-        self.update_total()
+            if not item_found:
+                row_position = self.item_table.rowCount()
+                self.item_table.insertRow(row_position)
+                self.item_table.setItem(row_position, 0, QTableWidgetItem(item_id))
+                self.item_table.setItem(row_position, 1, QTableWidgetItem(item_name))
+                self.item_table.setItem(row_position, 2, QTableWidgetItem(f"${item_price}"))
+                quantity_input = QSpinBox()
+                quantity_input.setMinimum(1)
+                quantity_input.setValue(1)
+                self.item_table.setCellWidget(row_position, 3, quantity_input)
+                remove_button = QPushButton('Remove')
+                remove_button.clicked.connect(lambda _, row=row_position: self.remove_item(row))
+                self.item_table.setCellWidget(row_position, 4, remove_button)
+            self.update_total_amount()
 
-    def remove_item(self):
-        button = self.sender()
-        index = self.item_table.indexAt(button.pos())
-        self.item_table.removeRow(index.row())
-        self.update_total()
+    def remove_item(self, row):
+        self.item_table.removeRow(row)
+        self.update_total_amount()
 
-    def update_total(self):
-        total = 0.0
+    def update_total_amount(self):
+        total_amount = 0.0
         for row in range(self.item_table.rowCount()):
-            price = float(self.item_table.item(row, 2).text())
-            quantity = self.item_table.cellWidget(row, 3).value()
-            total += price * quantity
-        self.total_label.setText(f'Total: ${total:.2f}')
+            item_price = float(self.item_table.item(row, 2).text().replace('$', ''))
+            item_quantity = self.item_table.cellWidget(row, 3).value()
+            total_amount += item_price * item_quantity
+        self.total_label.setText(f'Total: ${total_amount:.2f}')
 
-    def apply_discount(self):
-        discount_code = self.discount_input.text()
-        # Implement discount logic based on the code
-        # For now, we will just print the code
-        print(f'Discount code applied: {discount_code}')
-        # Update the total accordingly
+    def process_cash_payment(self):
+        if self.item_table.rowCount() == 0:
+            QMessageBox.warning(self, "No Items", "There are no items to check out.")
+            return
+        
+        self.prepare_receipt('Cash')
 
-    def process_payment(self):
-        payment_method = self.sender().text()
-        total = self.total_label.text().split('$')[1]
-        receipt = f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-        cashier_name = "Cashier Name"  # Replace with actual cashier name
-        receipt += f"Cashier: {cashier_name}\n"
-        receipt += f"Payment Method: {payment_method}\nTotal Amount: ${total}\n"
-        items = []
+    def show_mpesa_dialog(self):
+        if self.item_table.rowCount() == 0:
+            QMessageBox.warning(self, "No Items", "There are no items to check out.")
+            return
+
+        total_amount = self.total_label.text().replace('Total: $', '')
+        total_amount = float(total_amount)
+
+        # Assuming MpesaDialog is defined elsewhere
+        self.mpesa_dialog = MpesaDialog(total_amount)
+        self.mpesa_dialog.exec_()
+        if self.mpesa_dialog.result() == QDialog.Accepted:
+            self.prepare_receipt('Mpesa')
+
+    def prepare_receipt(self, payment_method):
+        total_amount = self.total_label.text().replace('Total: $', '')
+        total_amount = float(total_amount)
+        cashier = 'Cashier Name'  # Replace with actual cashier name if available
+        self.items = []
 
         for row in range(self.item_table.rowCount()):
             item_id = self.item_table.item(row, 0).text()
             item_name = self.item_table.item(row, 1).text()
-            item_price = self.item_table.item(row, 2).text()
+            item_price = self.item_table.item(row, 2).text().replace('$', '')
             quantity = self.item_table.cellWidget(row, 3).value()
-            receipt += f"{item_id} | {item_name} | ${item_price} | Qty: {quantity}\n"
-            items.append({
-                "item_id": item_id,
-                "item_name": item_name,
-                "item_price": item_price,
-                "quantity": quantity
-            })
+            self.items.append((item_id, item_name, float(item_price), quantity))
 
-        self.receipt_area.setText(receipt)
-        self.store_sale(receipt, cashier_name, total, items, payment_method)
+        receipt_text = f"Receipt\nDate: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        receipt_text += f"Cashier: {cashier}\n"
+        receipt_text += f"Payment Method: {payment_method}\n"
+        receipt_text += f"Total Amount: ${total_amount:.2f}\n\n"
+        receipt_text += "Items:\n"
+        for item_id, item_name, item_price, quantity in self.items:
+            receipt_text += f"{item_id} - {item_name} - ${item_price:.2f} x {quantity}\n"
 
-    def store_sale(self, receipt, cashier, total_amount, items, payment_method):
-        items_str = "; ".join([f"{item['item_id']} ({item['quantity']})" for item in items])
-        date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        self.cursor.execute('''INSERT INTO sales_history (date, cashier, total_amount, items, payment_method) 
-                               VALUES (?, ?, ?, ?, ?)''', (date, cashier, total_amount, items_str, payment_method))
-        self.conn.commit()
+        self.receipt_area.setText(receipt_text)
+        self.payment_method = payment_method
+        self.total_amount = total_amount
 
     def finish_sale(self):
+        if not hasattr(self, 'payment_method'):
+            QMessageBox.warning(self, "Payment Method", "Please select a payment method.")
+            return
+
+        # Store the sale details
+        self.store_sale(self.payment_method)
+
+        # Clear the cart and reset the page
         self.item_table.setRowCount(0)
-        self.total_label.setText('Total: $0.00')
-        self.discount_input.clear()
+        self.update_total_amount()
         self.receipt_area.clear()
-        self.load_all_items()
+        self.search_input.clear()
+        self.discount_input.clear()
+        self.payment_method = None
 
-    def print_receipt(self):
+    def store_sale(self, payment_method):
+        cashier = 'Cashier Name'  # Replace with actual cashier name if available
+
+        # Insert sale details into the `sales_history` table
+        for item_id, item_name, item_price, quantity in self.items:
+            self.cursor.execute("""
+                INSERT INTO sales_history (date, cashier, total_amount, items, payment_method, item_id, item_name, price, quantity, date_of_sale)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                cashier,
+                self.total_amount,
+                json.dumps(self.items),
+                payment_method,
+                item_id,
+                item_name,
+                item_price,
+                quantity,
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            ))
+
+        self.conn.commit()
+        self.generate_receipt_file()
+
+    def generate_receipt_file(self):
         receipt_text = self.receipt_area.toPlainText()
-        if not os.path.exists('receipts'):
-            os.makedirs('receipts')
-        filename = datetime.now().strftime('receipts/%Y-%m-%d_%H-%M-%S.txt')
-        with open(filename, 'w') as f:
-            f.write(receipt_text)
-        QMessageBox.information(self, "Receipt Printed", f"Receipt saved as {filename}")
+        receipt_folder = 'receipts'
+        if not os.path.exists(receipt_folder):
+            os.makedirs(receipt_folder)
 
-    def show_mpesa_dialog(self):
-        total = self.total_label.text().split('$')[1]
-        self.mpesa_dialog = MpesaDialog(total)
-        self.mpesa_dialog.exec_()
+        receipt_filename = f"receipt_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        receipt_filepath = os.path.join(receipt_folder, receipt_filename)
+        with open(receipt_filepath, 'w') as file:
+            file.write(receipt_text)
 
 
 class MpesaDialog(QDialog):
-    def __init__(self, total_amount):
-        super().__init__()
-        self.setWindowTitle('Mpesa Payment')
-        self.layout = QVBoxLayout()
-
+    def __init__(self, total_amount, parent=None):
+        super().__init__(parent)
         self.total_amount = total_amount
+        self.init_ui()
 
-        self.phone_label = QLabel('Enter Customer Phone Number:')
-        self.layout.addWidget(self.phone_label)
+    def init_ui(self):
+        self.setWindowTitle('MPESA Payment')
+        self.setModal(True)
+        self.setFixedSize(300, 150)
 
-        self.phone_input = QLineEdit()
-        self.layout.addWidget(self.phone_input)
+        # Layout
+        self.layout = QVBoxLayout()
+        
+        # Total Amount Label
+        self.total_label = QLabel(f"Total Amount: ${self.total_amount:.2f}")
+        self.layout.addWidget(self.total_label)
 
-        self.amount_label = QLabel(f'Amount to be paid: ${self.total_amount}')
-        self.layout.addWidget(self.amount_label)
+        # MPESA Phone Number
+        self.phone_number_label = QLabel('MPESA Phone Number:')
+        self.phone_number_input = QLineEdit()
+        self.phone_number_input.setPlaceholderText('Enter MPESA phone number')
+        self.layout.addWidget(self.phone_number_label)
+        self.layout.addWidget(self.phone_number_input)
 
-        self.pay_button = QPushButton('Pay')
-        self.layout.addWidget(self.pay_button)
+        # MPESA PIN
+        self.pin_label = QLabel('MPESA PIN:')
+        self.pin_input = QLineEdit()
+        self.pin_input.setPlaceholderText('Enter MPESA PIN')
+        self.pin_input.setEchoMode(QLineEdit.Password)
+        self.layout.addWidget(self.pin_label)
+        self.layout.addWidget(self.pin_input)
+
+        # Submit Button
+        self.submit_button = QPushButton('Submit')
+        self.submit_button.clicked.connect(self.process_mpesa)
+        self.layout.addWidget(self.submit_button)
 
         self.setLayout(self.layout)
-        self.pay_button.clicked.connect(self.process_payment)
 
-    def process_payment(self):
-        phone_number = self.phone_input.text()
-        if not phone_number:
-            QMessageBox.warning(self, "Input Error", "Please enter the customer phone number.")
-            return
-                # Format the phone number
-        phone_number = self.format_phone_number(phone_number)
-        if not phone_number:
-            QMessageBox.warning(self, "Input Error", "Please enter a valid phone number in the format 07XXXXXXXX.")
+    def process_mpesa(self):
+        phone_number = self.phone_number_input.text()
+        pin = self.pin_input.text()
+
+        # Simple validation
+        if not phone_number or not pin:
+            QMessageBox.warning(self, "Input Error", "Please enter both phone number and MPESA PIN.")
             return
 
-        # Call the MPESA STK Push function
-        self.mpesa_stk_push(phone_number, self.total_amount)
-    def format_phone_number(self, phone_number):
-        # Remove any leading + or non-numeric characters
-        phone_number = ''.join(filter(str.isdigit, phone_number))
-        
-        if phone_number.startswith('0'):
-            phone_number = '254' + phone_number[1:]
-        elif not phone_number.startswith('254'):
-            return None  # Invalid phone number format
-        
-        return phone_number
-    
-    def mpesa_stk_push(self, phone_number, amount):
-        # Implement the STK push logic here
-        consumer_key = ''
-        consumer_secret = ''
-        short_code = ''
-        lipa_na_mpesa_online_passkey = '#'
-        business_short_code = '174379'
-        callback_url = ''
+        # You can add more sophisticated MPESA validation or processing here
 
-        
-        try:
-            # Get the access token
-            access_token_url = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
-            response = requests.get(access_token_url, auth=(consumer_key, consumer_secret))
-            access_token = json.loads(response.text)['access_token']
-
-            # Ensure amount is a valid number
-            try:
-                amount = float(amount)
-                amount = int(amount)  # Ensure amount is an integer
-            except ValueError:
-                QMessageBox.warning(self, "Input Error", "Invalid amount format.")
-                return
-
-            # Make the STK push request
-            api_url = 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
-            headers = {
-                'Authorization': f'Bearer {access_token}',
-                'Content-Type': 'application/json'
-            }
-            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-            password = f"{short_code}{lipa_na_mpesa_online_passkey}{timestamp}"
-
-            payload = {
-                'BusinessShortCode': short_code,
-                'Password': password,
-                'Timestamp': timestamp,
-                'TransactionType': 'CustomerPayBillOnline',
-                'Amount': amount,
-                'PartyA': phone_number,
-                'PartyB': business_short_code,
-                'PhoneNumber': phone_number,
-                'CallBackURL': callback_url,
-                'AccountReference': 'POS System',
-                'TransactionDesc': 'Payment for items'
-            }
-
-            response = requests.post(api_url, headers=headers, json=payload)
-            response_data = response.json()
-            if 'ResponseCode' in response_data:
-                if response_data['ResponseCode'] == '0':
-                    QMessageBox.information(self, "Payment", f"STK Push to {phone_number} for ${amount} initiated.")
-                else:
-                    QMessageBox.warning(self, "Payment Error", f"Failed to initiate STK Push: {response_data['errorMessage']}")
-            else:
-                QMessageBox.warning(self, "Payment Error", f"Unexpected response: {response_data}")
-
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"An error occurred: {str(e)}")
-
+        # For now, just accept the dialog
         self.accept()

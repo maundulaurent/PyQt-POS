@@ -1,0 +1,6 @@
+Date: 2024-07-06 12:01:31
+Cashier: Cashier Name
+Payment Method: Mpesa
+Total Amount: $1214.00
+1719050323 | muselekuu | $14 | Qty: 1
+1719050712 | Pishori | $1200 | Qty: 1
