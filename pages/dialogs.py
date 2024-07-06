@@ -234,9 +234,82 @@ class BaseHistoryDialog(QDialog):
             header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
 
 
-class TransactionsDialog(BaseHistoryDialog):
+class TransactionsDialog(QDialog):
     def __init__(self, parent=None):
-        super(TransactionsDialog, self).__init__("transactions", "Transactions", parent)
+        super(TransactionsDialog, self).__init__(parent)
+        self.setWindowTitle("Transactions")
+        self.resize(1000, 600)  # Larger dialog size for better visibility
+
+        self.layout = QVBoxLayout(self)
+
+        # Create the table for transactions
+        self.history_table = QTableWidget(self)
+        self.history_table.setColumnCount(6)
+        self.history_table.setHorizontalHeaderLabels([
+            "Transaction Id", "Date and Time", "Cashier", "Product", "Quantity", "Amount"
+        ])
+        self.layout.addWidget(self.history_table)
+
+        self.init_db()
+        self.load_data()
+
+    def init_db(self):
+        # Connect to SQLite database
+        self.conn = sqlite3.connect('products.db')
+        self.cursor = self.conn.cursor()
+
+        # Ensure `sales_history` table has the correct columns (this should already be correct)
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS sales_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT,
+                cashier TEXT,
+                total_amount REAL,
+                items TEXT,
+                payment_method TEXT,
+                item_id TEXT,
+                item_name TEXT,
+                price REAL,
+                quantity INTEGER,
+                date_of_sale TEXT
+            )
+        """)
+        self.conn.commit()
+
+    def load_data(self):
+        # Clear the table
+        self.history_table.setRowCount(0)
+
+        # Get valid transactions
+        sql_query = """
+            SELECT id, date_of_sale, cashier, item_name, quantity, price
+            FROM sales_history
+            ORDER BY date_of_sale DESC
+        """
+
+        # Execute the query and load data into the table
+        self.cursor.execute(sql_query)
+        records = self.cursor.fetchall()
+
+        if not records:
+            self.history_table.setRowCount(1)
+            no_data_item = QTableWidgetItem("No data to display")
+            no_data_item.setForeground(QBrush(Qt.black))  # Set text color to black
+            self.history_table.setItem(0, 0, no_data_item)
+            self.history_table.setSpan(0, 0, 1, 6)  # Span across all columns
+        else:
+            self.history_table.setRowCount(len(records))
+            for row_index, row_data in enumerate(records):
+                for column_index, column_data in enumerate(row_data):
+                    item = QTableWidgetItem(str(column_data))
+                    item.setForeground(QBrush(Qt.black))  # Set text color to black
+                    self.history_table.setItem(row_index, column_index, item)
+
+        # Adjust column widths
+        header = self.history_table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch)
+        for i in range(self.history_table.columnCount()):
+            header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
 
 
 class OrdersHistoryDialog(QDialog):
