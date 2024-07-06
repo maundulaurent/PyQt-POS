@@ -9,6 +9,9 @@ from pages.dialogs import (
     AlertsHistoryDialog,
     SalesHistoryDialog
 )
+import sqlite3
+from datetime import datetime
+
 class HistoryWidget(QWidget):
     def __init__(self, switch_to_dashboard_page):
         super().__init__()
@@ -68,20 +71,22 @@ class HistoryWidget(QWidget):
         quick_stats_layout = QHBoxLayout()
         self.content_layout.addLayout(quick_stats_layout)
 
-        self.add_card_to_layout(quick_stats_layout, "Transactions", "14 Transactions", "click for more..", self.show_transactions)
+        # Get today's transaction count
+        transaction_count = self.get_today_transaction_count()
+
+        self.add_card_to_layout(quick_stats_layout, "Transactions", f"{transaction_count} Transactions Today", "click for more..", self.show_transactions)
         self.add_card_to_layout(quick_stats_layout, "Sales", "Items sold", "Details..", self.show_sales_history_dialog)
-        self.add_card_to_layout(quick_stats_layout, "Orders History", "recent Orders", "see all orders...", self.show_orders_history_dialog)
+        self.add_card_to_layout(quick_stats_layout, "Orders History", "Recent Orders", "see all orders...", self.show_orders_history_dialog)
         self.add_card_to_layout(quick_stats_layout, "Stocks History", "Products' activities", "check your stocks...", self.show_stocks_history_dialog)
 
         # Quick Statistics Bar2
         quick_stats_layout2 = QHBoxLayout()
         self.content_layout.addLayout(quick_stats_layout2)
-        self.add_card_to_layout(quick_stats_layout2, "Inventory", "check categories", "Actions..", self.show_inventory_history_dialog)
-        self.add_card_to_layout(quick_stats_layout2, "Top Selling category", " ", "see order", self.show_modal)
+        self.add_card_to_layout(quick_stats_layout2, "Inventory", "Check categories", "Actions..", self.show_inventory_history_dialog)
+        self.add_card_to_layout(quick_stats_layout2, "Top Selling Category", " ", "See order", self.show_modal)
         self.add_card_to_layout(quick_stats_layout2, " ", "Alerts", " ", self.show_alerts_history_dialog)
         self.add_card_to_layout(quick_stats_layout2, " ", "", " ", self.show_modal)
 
-        
         # Quick link to Dashboard
         quick_stats_layout4 = QHBoxLayout()
         self.content_layout.addLayout(quick_stats_layout4)
@@ -144,8 +149,21 @@ class HistoryWidget(QWidget):
 
         layout.addWidget(card, alignment=Qt.AlignTop)
 
+    def get_today_transaction_count(self):
+        today_date = datetime.now().strftime('%Y-%m-%d')
+        conn = sqlite3.connect('products.db')
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT COUNT(*) FROM sales_history
+            WHERE date_of_sale LIKE ?
+        """, (f"{today_date}%",))
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count
+
     def show_modal(self):
         QMessageBox.information(self, "Peter POS", "Please check later.")
+
     def show_transactions(self):
         dialog = TransactionsDialog(self)
         dialog.exec_()
