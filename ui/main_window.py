@@ -13,10 +13,14 @@ from pages.admin_page import AdminPage
 from pages.history import HistoryWidget
 from pages.orders import OrdersPage
 
+import sqlite3
+
 
 class POSSystem(QMainWindow):
     def __init__(self):
         super().__init__()
+
+        self.database = sqlite3.connect('products.db')
 
 
         self.setWindowTitle("Peter POS")
@@ -43,6 +47,7 @@ class POSSystem(QMainWindow):
             self.show_history,
             self.show_checkout,
         )
+
         self.product_management_page = ProductManagementPage()
         self.checkout_page = CheckoutPage()
         self.inventory_management_page = InventoryManagementPage()
@@ -69,6 +74,8 @@ class POSSystem(QMainWindow):
         self.create_menu_bar()
         self.central_widget.setCurrentWidget(self.user_login)  # Initially show login page
         self.menuBar().setVisible(False)  # Ensure menu bar is hidden initially
+
+        
 
     def switch_to_dashboard_page(self, logged_in=True):
         self.central_widget.setCurrentWidget(self.dashboard_page)

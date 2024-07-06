@@ -432,7 +432,7 @@ class StocksHistoryDialog(QDialog):
                 name TEXT,
                 category TEXT,
                 description TEXT,
-                date TEXT
+                date DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
         self.conn.commit()

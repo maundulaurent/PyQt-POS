@@ -82,6 +82,10 @@ class CheckoutPage(QWidget):
         self.init_db()
 
     def init_db(self):
+        # Connect to SQLite database
+        self.conn = sqlite3.connect('products.db')
+        self.cursor = self.conn.cursor()
+
         # Ensure `sales_history` table has the correct columns
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS sales_history (
@@ -98,6 +102,7 @@ class CheckoutPage(QWidget):
                 date_of_sale TEXT
             )
         """)
+
         self.conn.commit()
 
     def load_all_items(self):
@@ -139,27 +144,18 @@ class CheckoutPage(QWidget):
         product = self.cursor.fetchone()
         if product:
             item_id, item_name, item_price = product
-            item_found = False
-            for row in range(self.item_table.rowCount()):
-                if self.item_table.item(row, 0).text() == item_id:
-                    quantity_widget = self.item_table.cellWidget(row, 3)
-                    quantity_widget.setValue(quantity_widget.value() + 1)  # Increase the quantity
-                    item_found = True
-                    break
-
-            if not item_found:
-                row_position = self.item_table.rowCount()
-                self.item_table.insertRow(row_position)
-                self.item_table.setItem(row_position, 0, QTableWidgetItem(item_id))
-                self.item_table.setItem(row_position, 1, QTableWidgetItem(item_name))
-                self.item_table.setItem(row_position, 2, QTableWidgetItem(f"${item_price}"))
-                quantity_input = QSpinBox()
-                quantity_input.setMinimum(1)
-                quantity_input.setValue(1)
-                self.item_table.setCellWidget(row_position, 3, quantity_input)
-                remove_button = QPushButton('Remove')
-                remove_button.clicked.connect(lambda _, row=row_position: self.remove_item(row))
-                self.item_table.setCellWidget(row_position, 4, remove_button)
+            row_position = self.item_table.rowCount()
+            self.item_table.insertRow(row_position)
+            self.item_table.setItem(row_position, 0, QTableWidgetItem(item_id))
+            self.item_table.setItem(row_position, 1, QTableWidgetItem(item_name))
+            self.item_table.setItem(row_position, 2, QTableWidgetItem(f"${item_price}"))
+            quantity_input = QSpinBox()
+            quantity_input.setMinimum(1)
+            quantity_input.setValue(1)
+            self.item_table.setCellWidget(row_position, 3, quantity_input)
+            remove_button = QPushButton('Remove')
+            remove_button.clicked.connect(lambda _, row=row_position: self.remove_item(row))
+            self.item_table.setCellWidget(row_position, 4, remove_button)
             self.update_total_amount()
 
     def remove_item(self, row):
@@ -228,48 +224,40 @@ class CheckoutPage(QWidget):
         # Store the sale details
         self.store_sale(self.payment_method)
 
-        # Clear the cart and reset the page
-        self.item_table.setRowCount(0)
-        self.update_total_amount()
-        self.receipt_area.clear()
-        self.search_input.clear()
-        self.discount_input.clear()
-        self.payment_method = None
-
     def store_sale(self, payment_method):
         cashier = 'Cashier Name'  # Replace with actual cashier name if available
 
-        # Insert sale details into the `sales_history` table
+        # Insert sale details into the database
         for item_id, item_name, item_price, quantity in self.items:
             self.cursor.execute("""
                 INSERT INTO sales_history (date, cashier, total_amount, items, payment_method, item_id, item_name, price, quantity, date_of_sale)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                cashier,
-                self.total_amount,
-                json.dumps(self.items),
-                payment_method,
-                item_id,
-                item_name,
-                item_price,
-                quantity,
-                datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            ))
-
+            """, (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), cashier, self.total_amount, json.dumps(self.items), payment_method, item_id, item_name, item_price, quantity, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         self.conn.commit()
-        self.generate_receipt_file()
 
-    def generate_receipt_file(self):
-        receipt_text = self.receipt_area.toPlainText()
-        receipt_folder = 'receipts'
-        if not os.path.exists(receipt_folder):
-            os.makedirs(receipt_folder)
+        # Generate receipt file
+        receipt_file = f"receipts/receipt_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        os.makedirs(os.path.dirname(receipt_file), exist_ok=True)
 
-        receipt_filename = f"receipt_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-        receipt_filepath = os.path.join(receipt_folder, receipt_filename)
-        with open(receipt_filepath, 'w') as file:
-            file.write(receipt_text)
+        with open(receipt_file, 'w') as file:
+            file.write(self.receipt_area.toPlainText())
+
+        QMessageBox.information(self, "Sale Completed", f"Sale completed successfully. Receipt saved as {receipt_file}.")
+
+        # Clear the item table and total amount for the next sale
+        self.item_table.setRowCount(0)
+        self.total_label.setText('Total: $0.00')
+        self.receipt_area.clear()
+        self.search_input.clear()
+        self.discount_input.clear()
+        delattr(self, 'payment_method')
+        delattr(self, 'items')
+        delattr(self, 'total_amount')
+
+    def closeEvent(self, event):
+        # Ensure the database connection is closed when the widget is closed
+        self.conn.close()
+        event.accept()
 
 
 class MpesaDialog(QDialog):

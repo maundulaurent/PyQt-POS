@@ -2,9 +2,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtCore import Qt, QSize
 
-
-
-
+import sqlite3
+from datetime import datetime
         
 class DashboardPage(QWidget):
     def __init__(self,
@@ -113,7 +112,10 @@ class DashboardPage(QWidget):
         quick_stats_layout = QHBoxLayout()
         self.content_layout.addLayout(quick_stats_layout)
 
-        self.add_card_to_layout(quick_stats_layout, "Transactions", "14 Transactions", "Today")
+         # Get today's transaction count
+        transaction_count = self.get_today_transaction_count()
+
+        self.add_card_to_layout(quick_stats_layout, "Transactions", f"{transaction_count} Transactions", "Today")
         self.add_card_to_layout(quick_stats_layout, "Top Selling Product", "New Americano Perfume", "30 units sold")
         self.add_card_to_layout(quick_stats_layout, "Pending Orders", "5 Orders", "...")
         self.add_card_to_layout(quick_stats_layout, "Low Stock Alerts", "3 Products", "...")
@@ -296,3 +298,14 @@ class DashboardPage(QWidget):
             card_layout.addWidget(sub_text_label)
 
         layout.addWidget(card, alignment=Qt.AlignTop)
+    def get_today_transaction_count(self):
+        today_date = datetime.now().strftime('%Y-%m-%d')
+        conn = sqlite3.connect('products.db')
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT COUNT(*) FROM sales_history
+            WHERE date_of_sale LIKE ?
+        """, (f"{today_date}%",))
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count

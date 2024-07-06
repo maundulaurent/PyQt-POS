@@ -15,7 +15,8 @@ from datetime import datetime
 class HistoryWidget(QWidget):
     def __init__(self, switch_to_dashboard_page):
         super().__init__()
-        self.switch_to_dashboard_page = switch_to_dashboard_page      
+
+        self.switch_to_dashboard_page = switch_to_dashboard_page   
 
         self.main_layout = QHBoxLayout()
         self.setLayout(self.main_layout)
@@ -108,6 +109,7 @@ class HistoryWidget(QWidget):
             }
         """)
         self.content_layout.addWidget(card, alignment=Qt.AlignTop)
+        
 
     def add_card_to_layout(self, layout, title, main_text, sub_text="", function=None):
         card = QFrame()
