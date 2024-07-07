@@ -1,0 +1,8 @@
+Receipt
+Date: 2024-07-08 01:46:03
+Cashier: Cashier Name
+Payment Method: Cash
+Total Amount: $1200.00
+
+Items:
+1719052900 - Pishori mwea - $1200.00 x 6

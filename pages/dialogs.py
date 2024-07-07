@@ -516,11 +516,177 @@ class InventoryHistoryDialog(QDialog):
         connection.close()
 
 
-class AlertsHistoryDialog(BaseHistoryDialog):
+class AlertsHistoryDialog(QDialog):
     def __init__(self, parent=None):
-        super(AlertsHistoryDialog, self).__init__("alerts_history", "Alerts History", parent)
+        super(AlertsHistoryDialog, self).__init__(parent)
+        self.setWindowTitle("Alerts History")
+        self.resize(800, 600)  # Adjusted size for better view
 
+        self.layout = QVBoxLayout(self)
 
+        # Create the table for alert history
+        self.history_table = QTableWidget(self)
+        self.history_table.setColumnCount(2)
+        self.history_table.setHorizontalHeaderLabels(["Active Alerts", "Past Alerts"])
+        self.layout.addWidget(self.history_table)
+
+        self.init_db()
+        self.load_data()
+
+    def init_db(self):
+        # Connect to SQLite database
+        self.conn = sqlite3.connect('products.db')
+        self.cursor = self.conn.cursor()
+
+        # Ensure `alerts_history` table has the correct columns
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS alerts_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                description TEXT,
+                date TEXT,
+                additional_info TEXT
+            )
+        """)
+        self.conn.commit()
+
+    def load_data(self):
+        # Clear the table
+        self.history_table.setRowCount(0)
+
+        # Fetch active alerts
+        self.cursor.execute("""
+            SELECT description, date, additional_info FROM alerts_history 
+            WHERE date >= date('now', 'start of day') ORDER BY date DESC
+        """)
+        active_alerts = self.cursor.fetchall()
+
+        # Fetch past alerts
+        self.cursor.execute("""
+            SELECT description, date, additional_info FROM alerts_history 
+            WHERE date < date('now', 'start of day') ORDER BY date DESC
+        """)
+        past_alerts = self.cursor.fetchall()
+
+        # Populate the table with active and past alerts
+        max_rows = max(len(active_alerts), len(past_alerts))
+        self.history_table.setRowCount(max_rows)
+
+        for row in range(max_rows):
+            if row < len(active_alerts):
+                description, date, additional_info = active_alerts[row]
+                self.history_table.setItem(row, 0, QTableWidgetItem(description))
+                self.history_table.setItem(row, 0, QTableWidgetItem(date))
+                self.history_table.setItem(row, 0, QTableWidgetItem(additional_info))
+            if row < len(past_alerts):
+                description, date, additional_info = past_alerts[row]
+                self.history_table.setItem(row, 1, QTableWidgetItem(description))
+                self.history_table.setItem(row, 1, QTableWidgetItem(date))
+                self.history_table.setItem(row, 1, QTableWidgetItem(additional_info))
+
+        # Adjust column widths
+        header = self.history_table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch)
+        for i in range(self.history_table.columnCount()):
+            header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
+# =========================================SHOWING ALERTS =========================================
+
+class AlertPopup(QDialog):
+    def __init__(self, product, low_alert_level, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(f"Alert for {product}")
+        self.setGeometry(100, 100, 200, 100)
+        self.setModal(True)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowCloseButtonHint)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #FFC107; /* Yellow background */
+                border-radius: 10px;
+                padding: 10px;
+            }
+            QPushButton {
+                background-color: #FF5722; /* Red background */
+                color: white;
+                border-radius: 5px;
+                padding: 5px;
+                border: none;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #E64A19; /* Darker red */
+            }
+        """)
+        self.initUI(product, low_alert_level)
+
+    def initUI(self, product, low_alert_level):
+        layout = QVBoxLayout(self)
+
+        message = f"Product: {product}\nStock Alert: {low_alert_level}"
+        alert_label = QLabel(message, self)
+        alert_label.setAlignment(Qt.AlignCenter)
+
+        cancel_button = QPushButton("Cancel", self)
+        cancel_button.clicked.connect(self.close)
+
+        layout.addWidget(alert_label)
+        layout.addWidget(cancel_button)
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        # Draw triangle
+        painter = QPainter(self)
+        painter.setBrush(QBrush(QColor("#FFC107")))  # Same yellow color as the background
+        path = QPainterPath()
+        path.moveTo(10, 0)
+        path.lineTo(self.width() - 10, 0)
+        path.lineTo(self.width() / 2, self.height() - 10)
+        path.closeSubpath()
+        painter.drawPath(path)
+
+class AlertDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Stock Alerts")
+        self.setGeometry(100, 100, 600, 400)
+        self.setModal(True)
+        self.initUI()
+        self.show_alerts()
+
+    def initUI(self):
+        layout = QVBoxLayout(self)
+        
+        self.active_alerts_table = QTableWidget(0, 2, self)
+        self.active_alerts_table.setHorizontalHeaderLabels(["Product", "Stock Alert"])
+        self.active_alerts_table.horizontalHeader().setStretchLastSection(True)
+        self.active_alerts_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.active_alerts_table.setSelectionMode(QTableWidget.SingleSelection)
+
+        layout.addWidget(QLabel("Active Alerts"))
+        layout.addWidget(self.active_alerts_table)
+
+        # Add the "X" button to close the dialog
+        self.setWindowFlags(self.windowFlags() | Qt.WindowCloseButtonHint)
+
+    def show_alerts(self):
+        connection = sqlite3.connect('products.db')
+        cursor = connection.cursor()
+
+        cursor.execute("SELECT name, low_alert_level, stock FROM products")
+        products = cursor.fetchall()
+        connection.close()
+
+        for name, low_alert_level, stock in products:
+            if stock <= low_alert_level:
+                self.add_alert(name, low_alert_level)
+
+    def add_alert(self, product, low_alert_level):
+        row_position = self.active_alerts_table.rowCount()
+        self.active_alerts_table.insertRow(row_position)
+        self.active_alerts_table.setItem(row_position, 0, QTableWidgetItem(product))
+        self.active_alerts_table.setItem(row_position, 1, QTableWidgetItem(f"Alert: {low_alert_level}"))
+
+        # Show individual alert popup
+        alert_popup = AlertPopup(product, low_alert_level, self)
+        alert_popup.exec_()
 class SalesHistoryDialog(QDialog):
     def __init__(self, parent=None):
         super(SalesHistoryDialog, self).__init__(parent)

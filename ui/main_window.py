@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QMainWindow, QStackedWidget, QAction, QLabel, QLineEdit, QToolBar, QWidget, QHBoxLayout, QVBoxLayout, QPushButton
-from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+import sys
 
 from pages.user_login import LoginPage
 from pages.welcome_page import WelcomePage
@@ -49,7 +50,7 @@ class POSSystem(QMainWindow):
         )
 
         self.product_management_page = ProductManagementPage()
-        self.checkout_page = CheckoutPage()
+        self.checkout_page = CheckoutPage(self.product_management_page)
         self.inventory_management_page = InventoryManagementPage()
         self.settings_page = SettingsPage()
         self.admin_page = AdminPage()
@@ -119,11 +120,6 @@ class POSSystem(QMainWindow):
         reports_action.triggered.connect(lambda: self.central_widget.setCurrentWidget(self.reports_page))
         navigate_menu.addAction(reports_action)
 
-        file_menu = menu_bar.addMenu("File")
-        exit_action = QAction("Exit", self)
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
-
         help_menu = menu_bar.addMenu("Help")
         about_action = QAction("About", self)
         about_action.triggered.connect(self.show_about_dialog)
@@ -148,6 +144,7 @@ class POSSystem(QMainWindow):
         about_dialog.setGeometry(100, 100, 200, 100)
         about_dialog.show()
 
+  
 
 
 # Dashboard Links
@@ -162,3 +159,6 @@ class POSSystem(QMainWindow):
         self.central_widget.setCurrentWidget(self.history_page)
     def show_checkout(self):
         self.central_widget.setCurrentWidget(self.checkout_page)
+# Other links
+
+    

@@ -5,11 +5,15 @@ import sqlite3
 from datetime import datetime
 import os
 import json
+from pages.product_management_page import ProductManagementPage
+
+
 
 
 class CheckoutPage(QWidget):
-    def __init__(self):
+    def __init__(self, product_management_page):
         super().__init__()
+        self.product_management_page = product_management_page
 
         # Initialize the database connection
         self.conn = sqlite3.connect('products.db')
@@ -25,6 +29,7 @@ class CheckoutPage(QWidget):
         self.search_button = QPushButton('Search')
         self.clear_search_button = QPushButton('Clear Search')
         self.scan_button = QPushButton('Scan Item')
+        
         self.search_layout.addWidget(self.search_input)
         self.search_layout.addWidget(self.search_button)
         self.search_layout.addWidget(self.clear_search_button)
@@ -223,6 +228,7 @@ class CheckoutPage(QWidget):
 
         # Store the sale details
         self.store_sale(self.payment_method)
+        self.product_management_page.load_products()
 
     def store_sale(self, payment_method):
         cashier = 'Cashier Name'  # Replace with actual cashier name if available
@@ -233,6 +239,7 @@ class CheckoutPage(QWidget):
                 INSERT INTO sales_history (date, cashier, total_amount, items, payment_method, item_id, item_name, price, quantity, date_of_sale)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), cashier, self.total_amount, json.dumps(self.items), payment_method, item_id, item_name, item_price, quantity, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+            self.update_stock(item_id, quantity)
         self.conn.commit()
 
         # Generate receipt file
@@ -258,6 +265,30 @@ class CheckoutPage(QWidget):
         # Ensure the database connection is closed when the widget is closed
         self.conn.close()
         event.accept()
+    def update_stock(self, item_id, quantity):
+        # Subtract the quantity sold from the stock level
+        self.cursor.execute("UPDATE products SET stock = stock - ? WHERE id = ?", (quantity, item_id))
+        self.conn.commit()
+
+        # Check if the stock level is below the low_alert_level
+        self.cursor.execute("SELECT name, stock, low_alert_level FROM products WHERE id = ?", (item_id,))
+        product = self.cursor.fetchone()
+        if product and product[1] < product[2]:
+            alert_message = f"The product {product[0]} is running out of stock"
+            self.store_alert(item_id, alert_message)
+
+    def store_alert(self, item_id, alert_message):
+        # Store the alert in the alerts_history table
+        self.cursor.execute("""
+            INSERT INTO alerts_history (product_id, alert_message, date)
+            VALUES (?, ?, ?)
+        """, (item_id, alert_message, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        self.conn.commit()
+
+        # Display the alert message
+        QMessageBox.warning(self, "Stock Alert", alert_message)
+
+
 
 
 class MpesaDialog(QDialog):

@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import *
 
 # Import the generated UI class
 from uifiles.login_ui import Ui_Form, ClickableLabel
+from pages.dialogs import AlertDialog
 
 # Login Page
 class LoginPage(QWidget, Ui_Form):
@@ -68,9 +69,13 @@ class LoginPage(QWidget, Ui_Form):
             self.switch_to_dashboard_page()
             self.lineEdit.clear()  # Clear username input
             self.lineEdit_2.clear()
+
+            self.show_alert_dialog()
         else:
             QMessageBox.warning(self, 'Error', 'Invalid credentials')
-
+    def show_alert_dialog(self):
+        dialog = AlertDialog(self)
+        dialog.exec_()
 # Admin Setup Dialog
 class AdminSetupDialog(QDialog):
     def __init__(self, conn):

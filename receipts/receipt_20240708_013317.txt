@@ -1,0 +1,8 @@
+Receipt
+Date: 2024-07-08 01:33:15
+Cashier: Cashier Name
+Payment Method: Cash
+Total Amount: $50.00
+
+Items:
+1719050606 - ngima - $50.00 x 2

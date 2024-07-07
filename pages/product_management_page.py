@@ -21,10 +21,11 @@ class ProductManagementPage(QWidget):
     def init_db(self):
         self.conn = sqlite3.connect('products.db')
         self.cursor = self.conn.cursor()
+        # self.cursor.execute('''ALTER TABLE products ADD COLUMN low_alert_level INTEGER DEFAULT 0;''')
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS categories
                             (id INTEGER PRIMARY KEY, name TEXT UNIQUE)''')
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS products
-                            (id TEXT PRIMARY KEY, name TEXT, price INTEGER, category_id INTEGER, stock INTEGER,
+                            (id TEXT PRIMARY KEY, name TEXT, price INTEGER, category_id INTEGER, stock INTEGER, low_alert_level INTEGER DEFAULT 0,
                                 FOREIGN KEY (category_id) REFERENCES categories (id))''')
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS sales_history
                             (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, cashier TEXT, total_amount REAL, items TEXT, payment_method TEXT)''')
@@ -121,8 +122,8 @@ class ProductManagementPage(QWidget):
 
         # Initialize table to display products
         self.product_table = QTableWidget()
-        self.product_table.setColumnCount(5)
-        self.product_table.setHorizontalHeaderLabels(["Product Name", "Product ID", "Product Category", "Stock Level", "Price per Product"])
+        self.product_table.setColumnCount(6)
+        self.product_table.setHorizontalHeaderLabels(["Product Name", "Product ID", "Product Category", "Stock Level", "Price per Product", "Low Alert Level"])
         self.product_list_layout.addWidget(self.product_table)
 
         # Buttons for product operations
@@ -169,7 +170,7 @@ class ProductManagementPage(QWidget):
 
     def load_products(self):
         self.product_table.clearContents()
-        self.cursor.execute("SELECT name, id, category_id, stock, price FROM products")
+        self.cursor.execute("SELECT name, id, category_id, stock, price, low_alert_level FROM products")
         products = self.cursor.fetchall()
 
         if not products:
@@ -184,6 +185,7 @@ class ProductManagementPage(QWidget):
                 self.product_table.setItem(i, 2, QTableWidgetItem(str(product[2])))  # Category ID
                 self.product_table.setItem(i, 3, QTableWidgetItem(str(product[3])))  # Stock Level
                 self.product_table.setItem(i, 4, QTableWidgetItem(str(product[4])))  # Product Price
+                self.product_table.setItem(i, 5, QTableWidgetItem(str(product[5])))  # Product Price
 
         self.product_table.resizeColumnsToContents()
 
@@ -272,7 +274,7 @@ class AddProductDialog(QDialog):
         super().__init__(parent)
         self.product_id = product_id  # Store product_id for editing
         self.setWindowTitle("Add New Product" if product_id is None else "Edit Product")
-
+        self.resize(400,300)
         layout = QVBoxLayout(self)
 
         self.product_name_input = QLineEdit()
@@ -290,8 +292,12 @@ class AddProductDialog(QDialog):
         layout.addWidget(self.product_category_input)
 
         self.stock_level_input = QLineEdit()
-        layout.addWidget(QLabel("Stock Level:"))
+        layout.addWidget(QLabel("Initial Stock Level:"))
         layout.addWidget(self.stock_level_input)
+
+        self.low_alert_level_input = QLineEdit()
+        layout.addWidget(QLabel("Set Low Stock Alert Level"))
+        layout.addWidget(self.low_alert_level_input)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
         buttons.accepted.connect(self.accept_and_validate)
@@ -300,20 +306,22 @@ class AddProductDialog(QDialog):
 
         if product_id:
             # Populate dialog fields with existing product data for editing
-            parent.cursor.execute("SELECT name, price, category_id, stock FROM products WHERE id=?", (product_id,))
+            parent.cursor.execute("SELECT name, price, category_id, stock, low_alert_level FROM products WHERE id=?", (product_id,))
             product_data = parent.cursor.fetchone()
             self.product_name_input.setText(product_data[0])
             self.product_price_input.setText(str(product_data[1]))
             self.product_category_input.setCurrentIndex(self.product_category_input.findText(str(product_data[2])))
             self.stock_level_input.setText(str(product_data[3]))
+            self.low_alert_level_input.setText(str(product_data[4]))#populate that
 
     def accept_and_validate(self):
         product_name = self.product_name_input.text().strip()
         product_price = self.product_price_input.text().strip()
         product_category = self.product_category_input.currentText()
         stock_level = self.stock_level_input.text().strip()
+        low_alert_level = self.low_alert_level_input.text().strip()
 
-        if product_name == "" or product_price == "" or product_category == "":
+        if product_name == "" or product_price == "" or product_category == "" or low_alert_level == "":
             QMessageBox.warning(self, "Incomplete Information", "Please fill in all fields.")
         else:
             parent = self.parent()
@@ -321,14 +329,14 @@ class AddProductDialog(QDialog):
                 # Generate a unique product ID (example using current timestamp)
                 product_id = str(int(time.time()))  # Example of generating ID
                 # Insert the new product into the database
-                parent.cursor.execute("INSERT INTO products (id, name, price, category_id, stock) VALUES (?, ?, ?, ?, ?)",
-                                      (product_id, product_name, product_price, product_category, stock_level))
+                parent.cursor.execute("INSERT INTO products (id, name, price, category_id, stock, low_alert_level) VALUES (?, ?, ?, ?, ?, ?)",
+                                      (product_id, product_name, product_price, product_category, stock_level, low_alert_level))
                 parent.conn.commit()
 
                 parent.log_stock_activity("Added", product_name, product_category, product_id)
             else:
                 # Update existing product in the database
-                parent.cursor.execute("UPDATE products SET name=?, price=?, category_id=?, stock=? WHERE id=?",
+                parent.cursor.execute("UPDATE products SET name=?, price=?, category_id=?, stock=?, low_alert_level=? WHERE id=?",
                                       (product_name, product_price, product_category, stock_level, self.product_id))
                 parent.conn.commit()
 
@@ -354,7 +362,16 @@ class EditProductDialog(QDialog):
     def __init__(self, parent=None, product_id=None):
         super().__init__(parent)
         self.product_id = product_id
-        self.setWindowTitle("Edit Product")
+
+        # Retrieve the prroduct name for the title
+        if product_id:
+            parent.cursor.execute("SELECT name, price, category_id, stock, low_alert_level FROM products WHERE id=?", (product_id,))
+            product_data = parent.cursor.fetchone()
+            product_name = product_data[0]
+            self.setWindowTitle(f"Edit {product_name}'s Product Details")
+        else:
+            self.setWindowTitle("Edit Products's Details")
+        self.resize(400,300)
 
         layout = QVBoxLayout(self)
 
@@ -372,8 +389,13 @@ class EditProductDialog(QDialog):
         layout.addWidget(self.product_category_input)
 
         self.stock_level_input = QLineEdit()
+        self.stock_level_input.setReadOnly(True)
         layout.addWidget(QLabel("Stock Level:"))
         layout.addWidget(self.stock_level_input)
+
+        self.low_alert_level_input = QLineEdit()
+        layout.addWidget(QLabel("Low Alert Level:"))
+        layout.addWidget(self.low_alert_level_input)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
         buttons.accepted.connect(self.accept_and_validate)
@@ -381,25 +403,27 @@ class EditProductDialog(QDialog):
         layout.addWidget(buttons)
 
         if product_id:
-            parent.cursor.execute("SELECT name, price, category_id, stock FROM products WHERE id=?", (product_id,))
+            parent.cursor.execute("SELECT name, price, category_id, stock, low_alert_level FROM products WHERE id=?", (product_id,))
             product_data = parent.cursor.fetchone()
             self.product_name_input.setText(product_data[0])
             self.product_price_input.setText(str(product_data[1]))
             self.product_category_input.setCurrentIndex(self.product_category_input.findText(str(product_data[2])))
             self.stock_level_input.setText(str(product_data[3]))
+            self.low_alert_level_input.setText(str(product_data[4]))
 
     def accept_and_validate(self):
         product_name = self.product_name_input.text().strip()
         product_price = self.product_price_input.text().strip()
         product_category = self.product_category_input.currentText()
         stock_level = self.stock_level_input.text().strip()
+        low_alert_level = self.low_alert_level_input.text().strip()
 
         if product_name == "" or product_price == "" or product_category == "":
             QMessageBox.warning(self, "Incomplete Information", "Please fill in all fields.")
         else:
             parent = self.parent()
-            parent.cursor.execute("UPDATE products SET name=?, price=?, category_id=?, stock=? WHERE id=?",
-                                  (product_name, product_price, product_category, stock_level, self.product_id))
+            parent.cursor.execute("UPDATE products SET name=?, price=?, category_id=?, stock=?, low_alert_level=? WHERE id=?",
+                                  (product_name, product_price, product_category, stock_level, low_alert_level, self.product_id))
             parent.conn.commit()
 
             parent.log_stock_activity("Edited", product_name, product_category, self.product_id)

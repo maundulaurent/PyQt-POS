@@ -114,10 +114,11 @@ class DashboardPage(QWidget):
 
          # Get today's transaction count
         transaction_count = self.get_today_transaction_count()
+        pending_orders = self.get_pending_orders()
 
         self.add_card_to_layout(quick_stats_layout, "Transactions", f"{transaction_count} Transactions", "Today")
         self.add_card_to_layout(quick_stats_layout, "Top Selling Product", "New Americano Perfume", "30 units sold")
-        self.add_card_to_layout(quick_stats_layout, "Pending Orders", "5 Orders", "...")
+        self.add_card_to_layout(quick_stats_layout, "Pending Orders", f"{pending_orders} Orders", "...")
         self.add_card_to_layout(quick_stats_layout, "Low Stock Alerts", "3 Products", "...")
 
         card = QFrame()
@@ -306,6 +307,20 @@ class DashboardPage(QWidget):
             SELECT COUNT(*) FROM sales_history
             WHERE date_of_sale LIKE ?
         """, (f"{today_date}%",))
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count
+    
+    def get_pending_orders(self):
+        conn = sqlite3.connect('products.db')
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT COUNT(*) FROM orders_history
+            WHERE amount_received IS NULL
+        """)
+        # pending_orders = cursor.fetchall()
+        # conn.close()
+        # return pending_orders
         count = cursor.fetchone()[0]
         conn.close()
         return count

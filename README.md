@@ -16,3 +16,8 @@ pyuic5
 pyuic5 -x file_name.ui -o test.py
 
 
+<!-- Delete this after -->
+
+
+In this products class, I want you to show me where to change, I want you, in the add productdialog, add another entry, the low_stock_limit into the database, when a new product is being added.
+2. In the display board of the products, add another column maybe, that has "add stock". This just inputs a number, an integer only. It cannot accepts any oother type. That number shows tthe number of items in the same product that has been added. So take after clicking ok, take that number, and add into the existing stock level

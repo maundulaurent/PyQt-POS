@@ -1,0 +1,9 @@
+Receipt
+Date: 2024-07-07 21:18:21
+Cashier: Cashier Name
+Payment Method: Cash
+Total Amount: $1650.00
+
+Items:
+1719053835 - Collard Greens - $150.00 x 1
+1719053718 - charger - $1500.00 x 1
