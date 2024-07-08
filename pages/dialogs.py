@@ -594,25 +594,19 @@ class AlertPopup(QDialog):
     def __init__(self, product, low_alert_level, parent=None):
         super().__init__(parent)
         self.setWindowTitle(f"Alert for {product}")
-        self.setGeometry(100, 100, 200, 100)
+        self.setGeometry(0, 0, 300, 60)  # Width long, height short
         self.setModal(True)
         self.setWindowFlags(self.windowFlags() | Qt.WindowCloseButtonHint)
         self.setStyleSheet("""
             QDialog {
                 background-color: #FFC107; /* Yellow background */
-                border-radius: 10px;
+                border-radius: 15px; /* Rounded corners */
                 padding: 10px;
+                border: 2px solid #FF9800; /* Darker border */
             }
-            QPushButton {
-                background-color: #FF5722; /* Red background */
-                color: white;
-                border-radius: 5px;
-                padding: 5px;
-                border: none;
+            QLabel {
+                color: #000000; /* Black text */
                 font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #E64A19; /* Darker red */
             }
         """)
         self.initUI(product, low_alert_level)
@@ -620,33 +614,29 @@ class AlertPopup(QDialog):
     def initUI(self, product, low_alert_level):
         layout = QVBoxLayout(self)
 
-        message = f"Product: {product}\nStock Alert: {low_alert_level}"
+        message = f"Product: {product} - Stock Alert: {low_alert_level}"
         alert_label = QLabel(message, self)
         alert_label.setAlignment(Qt.AlignCenter)
 
-        cancel_button = QPushButton("Cancel", self)
-        cancel_button.clicked.connect(self.close)
-
         layout.addWidget(alert_label)
-        layout.addWidget(cancel_button)
+        self.setLayout(layout)
 
     def paintEvent(self, event):
         super().paintEvent(event)
-        # Draw triangle
+        # Draw triangle at the top right corner
         painter = QPainter(self)
         painter.setBrush(QBrush(QColor("#FFC107")))  # Same yellow color as the background
         path = QPainterPath()
-        path.moveTo(10, 0)
-        path.lineTo(self.width() - 10, 0)
-        path.lineTo(self.width() / 2, self.height() - 10)
+        path.moveTo(self.width() - 20, 0)
+        path.lineTo(self.width() - 0, 0)
+        path.lineTo(self.width() - 10, 10)
         path.closeSubpath()
         painter.drawPath(path)
-
 class AlertDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Stock Alerts")
-        self.setGeometry(100, 100, 600, 400)
+        self.setGeometry(100, 100, 400, 300)  # Width long, height short
         self.setModal(True)
         self.initUI()
         self.show_alerts()
@@ -665,6 +655,18 @@ class AlertDialog(QDialog):
 
         # Add the "X" button to close the dialog
         self.setWindowFlags(self.windowFlags() | Qt.WindowCloseButtonHint)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #FFFFFF; /* White background */
+                border-radius: 10px; /* Rounded corners */
+                padding: 10px;
+                border: 2px solid #B0BEC5; /* Border color */
+            }
+            QLabel {
+                color: #000000; /* Black text */
+                font-weight: bold;
+            }
+        """)
 
     def show_alerts(self):
         connection = sqlite3.connect('products.db')
@@ -686,6 +688,11 @@ class AlertDialog(QDialog):
 
         # Show individual alert popup
         alert_popup = AlertPopup(product, low_alert_level, self)
+        # Position the popup at the top-right of the screen
+        screen_geometry = QApplication.primaryScreen().geometry()
+        x_position = screen_geometry.width() - alert_popup.width() - 10  # 10px margin from the right
+        y_position = 10  # 10px margin from the top
+        alert_popup.move(x_position, y_position)
         alert_popup.exec_()
 class SalesHistoryDialog(QDialog):
     def __init__(self, parent=None):
