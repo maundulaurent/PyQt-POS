@@ -145,23 +145,36 @@ class CheckoutPage(QWidget):
 
     def select_item(self, item):
         item_id = item.text().split(' - ')[0]
-        self.cursor.execute("SELECT id, name, price FROM products WHERE id = ?", (item_id,))
+        self.cursor.execute("SELECT id, name, price, stock FROM products WHERE id = ?", (item_id,))
         product = self.cursor.fetchone()
         if product:
-            item_id, item_name, item_price = product
+            item_id, item_name, item_price, stock = product
+            if stock <= 0:
+                QMessageBox.warning(self, "Stock Alert", f"The product {item_name} is out of stock.")
+                return
+            # Get the quantity from the input widget or default to 1
+            quantity_input = QSpinBox()
+            quantity_input.setMinimum(1)
+            quantity_input.setValue(1)
+
+            # Check if the selected quantity exceeds available stock
+            if stock < quantity_input.value():
+                QMessageBox.warning(self, "Stock Alert", f"The number in stock of product {item_name} is below the required amount.")
+                quantity_input.setValue(stock)
+
+            # Add the item to the table
             row_position = self.item_table.rowCount()
             self.item_table.insertRow(row_position)
             self.item_table.setItem(row_position, 0, QTableWidgetItem(item_id))
             self.item_table.setItem(row_position, 1, QTableWidgetItem(item_name))
             self.item_table.setItem(row_position, 2, QTableWidgetItem(f"${item_price}"))
-            quantity_input = QSpinBox()
-            quantity_input.setMinimum(1)
-            quantity_input.setValue(1)
             self.item_table.setCellWidget(row_position, 3, quantity_input)
             remove_button = QPushButton('Remove')
             remove_button.clicked.connect(lambda _, row=row_position: self.remove_item(row))
             self.item_table.setCellWidget(row_position, 4, remove_button)
             self.update_total_amount()
+
+
 
     def remove_item(self, row):
         self.item_table.removeRow(row)
@@ -226,9 +239,15 @@ class CheckoutPage(QWidget):
             QMessageBox.warning(self, "Payment Method", "Please select a payment method.")
             return
 
+        if not self.check_stock():
+            QMessageBox.warning(self, "Stock Alert", "One or more items in the cart have quantities that exceed available stock.")
+            return
+        
         # Store the sale details
+        self.prepare_receipt(self.payment_method)
         self.store_sale(self.payment_method)
         self.product_management_page.load_products()
+
 
     def store_sale(self, payment_method):
         cashier = 'Cashier Name'  # Replace with actual cashier name if available
@@ -268,19 +287,41 @@ class CheckoutPage(QWidget):
     def update_stock(self, item_id, quantity):
         # Subtract the quantity sold from the stock level
         self.cursor.execute("UPDATE products SET stock = stock - ? WHERE id = ?", (quantity, item_id))
-        self.conn.commit()
-
+        
+        try:
+            self.conn.commit()
+        except sqlite3.IntegrityError as e:
+            # Handle the constraint violation
+            QMessageBox.warning(self, "Stock Error", "The quantity of the product cannot exceed the available stock.")
+            return
+        
         # Check if the stock level is below the low_alert_level
         self.cursor.execute("SELECT name, stock, low_alert_level FROM products WHERE id = ?", (item_id,))
         product = self.cursor.fetchone()
         if product and product[1] < product[2]:
             alert_message = f"The product {product[0]} is running out of stock"
             self.store_alert(item_id, alert_message)
+        if product and product[1] == 0:
+            alert_message = f"The product {product[0]} is out of stock"
+            self.store_alert(item_id, alert_message)
+
+    def check_stock(self):
+        for row in range(self.item_table.rowCount()):
+            item_id = self.item_table.item(row, 0).text()
+            quantity = self.item_table.cellWidget(row, 3).value()
+            self.cursor.execute("SELECT stock FROM products WHERE id = ?", (item_id,))
+            stock = self.cursor.fetchone()[0]
+            if quantity > stock:
+                return False
+        return True
+
+
+
 
     def store_alert(self, item_id, alert_message):
         # Store the alert in the alerts_history table
         self.cursor.execute("""
-            INSERT INTO alerts_history (product_id, alert_message, date)
+            INSERT INTO alerts_history (id, description, date)
             VALUES (?, ?, ?)
         """, (item_id, alert_message, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         self.conn.commit()

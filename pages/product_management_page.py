@@ -25,7 +25,7 @@ class ProductManagementPage(QWidget):
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS categories
                             (id INTEGER PRIMARY KEY, name TEXT UNIQUE)''')
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS products
-                            (id TEXT PRIMARY KEY, name TEXT, price INTEGER, category_id INTEGER, stock INTEGER, low_alert_level INTEGER DEFAULT 0,
+                            (id TEXT PRIMARY KEY, name TEXT, price INTEGER, category_id INTEGER, stock INTEGER CHECK(stock >= 0), low_alert_level INTEGER DEFAULT 0,
                                 FOREIGN KEY (category_id) REFERENCES categories (id))''')
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS sales_history
                             (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, cashier TEXT, total_amount REAL, items TEXT, payment_method TEXT)''')
