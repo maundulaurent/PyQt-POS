@@ -22,11 +22,29 @@ class ProductManagementPage(QWidget):
         self.conn = sqlite3.connect('products.db')
         self.cursor = self.conn.cursor()
         # self.cursor.execute('''ALTER TABLE products ADD COLUMN low_alert_level INTEGER DEFAULT 0;''')
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS categories
-                            (id INTEGER PRIMARY KEY, name TEXT UNIQUE)''')
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS products
-                            (id TEXT PRIMARY KEY, name TEXT, price INTEGER, category_id INTEGER, stock INTEGER CHECK(stock >= 0), low_alert_level INTEGER DEFAULT 0,
-                                FOREIGN KEY (category_id) REFERENCES categories (id))''')
+        # self.cursor.execute('''
+        #     CREATE TABLE IF NOT EXISTS products_new (
+        #         id TEXT PRIMARY KEY, 
+        #         name TEXT, 
+        #         price INTEGER, 
+        #         category_id INTEGER, 
+        #         stock INTEGER CHECK(stock >= 0), 
+        #         low_alert_level INTEGER DEFAULT 0 CHECK(low_alert_level >= 0), 
+        #         FOREIGN KEY (category_id) REFERENCES categories (id)
+        #     )
+        # ''')
+        # self.cursor.execute('''
+        #     INSERT INTO products_new (id, name, price, category_id, stock, low_alert_level)
+        #     SELECT id, name, price, category_id, stock, low_alert_level
+        #     FROM products
+        # ''')
+
+        # self.cursor.execute('DROP TABLE products')
+        # self.cursor.execute('ALTER TABLE products_new RENAME TO products')
+
+
+
+
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS sales_history
                             (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, cashier TEXT, total_amount REAL, items TEXT, payment_method TEXT)''')
         
@@ -98,7 +116,7 @@ class ProductManagementPage(QWidget):
 
         # Toolbar buttons
         self.btn_all_products = QPushButton("All Products")
-        # self.btn_all_products.clicked.connect(self.show_all_products)
+        self.btn_all_products.clicked.connect(self.show_all_products)
         self.toolbar_layout.addWidget(self.btn_all_products)
 
         self.btn_add_product = QPushButton("Add New Product")
@@ -130,9 +148,9 @@ class ProductManagementPage(QWidget):
         self.product_buttons_layout = QHBoxLayout()
         self.product_list_layout.addLayout(self.product_buttons_layout)
 
-        self.add_product_button = QPushButton("Add a New Product")
-        self.add_product_button.clicked.connect(self.add_new_product)
-        self.product_buttons_layout.addWidget(self.add_product_button)
+        self.add_stock_button = QPushButton("Add stock to Product")
+        self.add_stock_button.clicked.connect(self.add_stock_to_product)
+        self.product_buttons_layout.addWidget(self.add_stock_button)
 
         self.edit_product_btn = QPushButton("Edit Product")
         self.edit_product_btn.clicked.connect(self.edit_product)
@@ -153,10 +171,8 @@ class ProductManagementPage(QWidget):
         # Load products initially
         self.load_products()
 
-        # Set up main window
-        self.setWindowTitle("Inventory Management")
-        # self.setGeometry(100, 100, 800, 600)
-        self.show()
+   
+        # self.show()
 
         self.btn_search.clicked.connect(self.search_products)
 
@@ -228,6 +244,25 @@ class ProductManagementPage(QWidget):
             self.load_products()
             QMessageBox.information(self, "Product Deleted", "Product successfully deleted.")
 
+    def add_stock_to_product(self):
+        selected_rows = self.product_table.selectedItems()
+        if not selected_rows:
+            QMessageBox.warning(self, "Select Product", "Please select a product to add stock to.")
+            return
+
+        row = selected_rows[0].row()
+        product_id = self.product_table.item(row, 1).text()
+
+        dialog = AddStockDialog(self, product_id=product_id)
+        if dialog.exec_():  # User clicked OK
+            QMessageBox.information(self, "Stock Added", "Stock successfully added.")
+            self.load_products()  # Refresh the products table
+        dialog.deleteLater()
+
+    def show_all_products(self):
+        self.load_products()
+
+
     def search_products(self):
         search_text = self.btn_search.text().strip().lower()
 
@@ -259,11 +294,6 @@ class ProductManagementPage(QWidget):
         self.cursor.execute("INSERT INTO stocks_history (product_id, name, category, description, date) VALUES (?, ?, ?, ?, ?)",
                             (product_id, product_name, product_category, action, current_datetime))
         self.conn.commit()
-
-
-
-
-    
 
 
 
@@ -438,3 +468,57 @@ class EditProductDialog(QDialog):
         categories = parent.cursor.fetchall()
         for category_id, category_name in categories:
             self.product_category_input.addItem(f"{category_name} ({category_id})")
+
+
+class AddStockDialog(QDialog):
+    def __init__(self, parent=None, product_id=None):
+        super().__init__(parent)
+        self.product_id = product_id  # Store product_id for updating stock
+        self.setWindowTitle("Add Stock to Product")
+        self.resize(300, 150)
+
+        layout = QVBoxLayout(self)
+
+        # Fetch product details from the database
+        parent.cursor.execute("SELECT name, stock FROM products WHERE id=?", (self.product_id,))
+        product_data = parent.cursor.fetchone()
+        if not product_data:
+            QMessageBox.warning(self, "Error", "Product not found.")
+            self.reject()
+            return
+
+        product_name, current_stock = product_data
+
+        self.current_stock_label = QLabel(f"Current Stock Level for '{product_name}': {current_stock}")
+        layout.addWidget(self.current_stock_label)
+
+        self.add_stock_input = QLineEdit()
+        self.add_stock_input.setPlaceholderText("Enter number of units to add")
+        self.add_stock_input.setValidator(QIntValidator(1, 10000, self))  # Integer input only
+        layout.addWidget(QLabel("Units to Add:"))
+        layout.addWidget(self.add_stock_input)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
+        buttons.accepted.connect(self.accept_and_validate)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def accept_and_validate(self):
+        units_to_add = self.add_stock_input.text().strip()
+
+        if not units_to_add:
+            QMessageBox.warning(self, "Incomplete Information", "Please enter the number of units to add.")
+        else:
+            units_to_add = int(units_to_add)
+            parent = self.parent()
+            parent.cursor.execute("UPDATE products SET stock = stock + ? WHERE id = ?", (units_to_add, self.product_id))
+            parent.conn.commit()
+
+            product_name = parent.product_table.item(parent.product_table.currentRow(), 0).text()
+            product_category = parent.product_table.item(parent.product_table.currentRow(), 2).text()
+
+            parent.log_stock_activity("Added Stock", product_name, product_category, self.product_id)
+            parent.load_products()
+
+            QMessageBox.information(self, "Stock Added", f"Added {units_to_add} units to '{product_name}'.")
+            self.accept()

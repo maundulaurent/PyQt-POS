@@ -303,6 +303,7 @@ class DashboardPage(QWidget):
         today_date = datetime.now().strftime('%Y-%m-%d')
         conn = sqlite3.connect('products.db')
         cursor = conn.cursor()
+
         cursor.execute("""
             SELECT COUNT(*) FROM sales_history
             WHERE date_of_sale LIKE ?

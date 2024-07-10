@@ -425,16 +425,7 @@ class StocksHistoryDialog(QDialog):
         self.cursor = self.conn.cursor()
 
         # Check if table exists, and create it if not
-        self.cursor.execute(f"""
-            CREATE TABLE IF NOT EXISTS stocks_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                product_id TEXT,
-                name TEXT,
-                category TEXT,
-                description TEXT,
-                date DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+        
         self.conn.commit()
 
     def load_data(self):
@@ -539,14 +530,7 @@ class AlertsHistoryDialog(QDialog):
         self.cursor = self.conn.cursor()
 
         # Ensure `alerts_history` table has the correct columns
-        self.cursor.execute("""
-            CREATE TABLE IF NOT EXISTS alerts_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                description TEXT,
-                date TEXT,
-                additional_info TEXT
-            )
-        """)
+        
         self.conn.commit()
 
     def load_data(self):

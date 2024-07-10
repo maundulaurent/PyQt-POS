@@ -96,9 +96,4 @@ class AdminPage(QWidget):
             dialog.exec_()
             self.update_user_list()
 
-if __name__ == '__main__':
-    import sys
-    app = QApplication(sys.argv)
-    window = AdminPage()
-    window.show()
-    sys.exit(app.exec_())
+

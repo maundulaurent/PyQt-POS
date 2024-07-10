@@ -1,4 +1,3 @@
-import sys
 import sqlite3
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -82,9 +81,9 @@ class InventoryManagementPage(QWidget):
         # self.btn_search.clicked.connect(self.search_products)
         self.toolbar_layout.addWidget(self.btn_search)
 
-        self.btn_filter = QPushButton("Filter Products")
+        # self.btn_filter = QPushButton("Filter Products")
         # self.btn_filter.clicked.connect(self.filter_products)
-        self.toolbar_layout.addWidget(self.btn_filter)
+        # self.toolbar_layout.addWidget(self.btn_filter)
 
         self.btn_export = QPushButton("Export")
         # self.btn_export.clicked.connect(self.export_data)
@@ -124,9 +123,6 @@ class InventoryManagementPage(QWidget):
         # Load products initially
         self.load_products()
 
-        # Set up main window
-        self.setWindowTitle("Inventory Management")
-        # self.setGeometry(100, 100, 800, 400)
         self.show()
 
     def load_products(self):

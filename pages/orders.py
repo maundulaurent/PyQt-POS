@@ -60,20 +60,7 @@ class AddOrderDialog(QDialog):
 
         conn = sqlite3.connect('products.db')
         cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS orders_history (
-                category TEXT,
-                product TEXT,
-                quantity TEXT,
-                date_of_order TEXT,
-                ordered_by TEXT,
-                order_completed_on TEXT,
-                mode_of_payment TEXT,
-                who_paid TEXT,
-                amount_received REAL,
-                confirmed_by TEXT
-            )
-        """)
+       
         cursor.execute("""
             INSERT INTO orders_history (category, product, quantity, date_of_order, ordered_by)
             VALUES (?, ?, ?, ?, ?)
@@ -108,12 +95,7 @@ class AddCategoryDialog(QDialog):
 
         conn = sqlite3.connect('products.db')
         cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS order_categories (
-                id INTEGER PRIMARY KEY,
-                category_name TEXT
-            )
-        """)
+        
         cursor.execute("INSERT INTO order_categories (category_name) VALUES (?)", (category_name,))
         conn.commit()
         conn.close()
