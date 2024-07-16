@@ -94,7 +94,14 @@ class ProductManagementPage(QWidget):
         self.delete_product_btn.clicked.connect(self.delete_product)
         self.toolbar_layout.addWidget(self.delete_product_btn)
 
+          # Add search input field
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("search product")
+        self.search_input.setFixedWidth(140)
+        self.toolbar_layout.addWidget(self.search_input)
+
         self.btn_search = QPushButton("Search")
+        self.btn_search.clicked.connect(self.search_products)
         self.toolbar_layout.addWidget(self.btn_search)
 
 
@@ -134,7 +141,7 @@ class ProductManagementPage(QWidget):
    
         # self.show()
 
-        self.btn_search.clicked.connect(self.search_products)
+        
 
     def add_new_product(self):
         dialog = AddProductDialog(self)
@@ -224,20 +231,20 @@ class ProductManagementPage(QWidget):
 
 
     def search_products(self):
-        search_text = self.btn_search.text().strip().lower()
+        search_text = self.search_input.text().strip().lower()
 
         if not search_text:
             QMessageBox.warning(self, "Empty Search Query", "Please enter a search query.")
             return
 
         self.product_table.clearContents()
-        self.cursor.execute("SELECT name, id, category_id, stock, price FROM products WHERE lower(name) LIKE ? OR id LIKE ?", ('%' + search_text + '%', '%' + search_text + '%'))
+        self.cursor.execute("SELECT name, id, category_id, stock, price, low_alert_level FROM products WHERE lower(name) LIKE ? OR id LIKE ?", ('%' + search_text + '%', '%' + search_text + '%'))
         products = self.cursor.fetchall()
 
         if not products:
             self.product_table.setRowCount(1)
             self.product_table.setItem(0, 0, QTableWidgetItem("No Items matching your search."))
-            self.product_table.setSpan(0, 0, 1, 4)  # Span across all columns
+            self.product_table.setSpan(0, 0, 1, 5)  # Span across all columns
         else:
             self.product_table.setRowCount(len(products))
             for i, product in enumerate(products):
@@ -246,6 +253,7 @@ class ProductManagementPage(QWidget):
                 self.product_table.setItem(i, 2, QTableWidgetItem(str(product[2])))  # Category ID
                 self.product_table.setItem(i, 3, QTableWidgetItem(str(product[3])))  # Stock Level
                 self.product_table.setItem(i, 4, QTableWidgetItem(str(product[4])))  # Product Price
+                self.product_table.setItem(i, 5, QTableWidgetItem(str(product[5])))  # Product Alert
 
         self.product_table.resizeColumnsToContents()
 
@@ -382,10 +390,11 @@ class EditProductDialog(QDialog):
 
         self.stock_level_input = QLineEdit()
         self.stock_level_input.setReadOnly(True)
-        layout.addWidget(QLabel("Stock Level:"))
+        layout.addWidget(QLabel("Stock Level:(To add, go to add stock)"))
         layout.addWidget(self.stock_level_input)
 
         self.low_alert_level_input = QLineEdit()
+        self.low_alert_level_input.setValidator(QIntValidator(1, 999999))
         layout.addWidget(QLabel("Low Alert Level:"))
         layout.addWidget(self.low_alert_level_input)
 
