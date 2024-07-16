@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 
 # Configuration
-INTERVAL_SECONDS = 1200  # Set the interval for pushing in seconds
+INTERVAL_SECONDS = 30  # Set the interval for pushing in seconds
 
 def git_push():
     try:
