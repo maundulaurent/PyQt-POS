@@ -195,10 +195,16 @@ class POSSystem(QMainWindow):
         reports_action.triggered.connect(lambda: self.central_widget.setCurrentWidget(self.reports_page))
         navigate_menu.addAction(reports_action)
 
-        help_menu = menu_bar.addMenu("Help")
-        about_action = QAction("About", self)
-        about_action.triggered.connect(self.show_about_dialog)
-        help_menu.addAction(about_action)
+        # help_menu = menu_bar.addMenu("Dashboard")
+        # help_action = QAction("Dashboard", self)
+        # help_action.triggered.connect(lambda: self.central_widget.setCurrentWidget(self.dashboard_page))
+        # help_menu.addAction(help_action)
+
+            # Add Dashboard menu item directly to menu bar
+        dashboard_menu_action = QAction("Dashboard", self)
+        dashboard_menu_action.triggered.connect(lambda: self.central_widget.setCurrentWidget(self.dashboard_page))
+        menu_bar.addAction(dashboard_menu_action)
+                
 
         account_menu = menu_bar.addMenu("Account")
         logout_action = QAction("Signout", self)

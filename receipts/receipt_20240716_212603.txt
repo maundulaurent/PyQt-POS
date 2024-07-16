@@ -1,0 +1,9 @@
+Receipt
+Date: 2024-07-16 21:26:03
+Cashier: Cashier Name
+Payment Method: Cash
+Total Amount: $63431.00
+
+Items:
+1720034372 - sofas - $50000.00 x 1
+1720034374 - sofasest - $13431.00 x 1
