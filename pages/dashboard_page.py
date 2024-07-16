@@ -115,11 +115,12 @@ class DashboardPage(QWidget):
          # Get today's transaction count
         transaction_count = self.get_today_transaction_count()
         pending_orders = self.get_pending_orders()
+        low_stocks = self.get_low_stocks()
 
         self.add_card_to_layout(quick_stats_layout, "Transactions", f"{transaction_count} Transactions", "Today")
         self.add_card_to_layout(quick_stats_layout, "Top Selling Product", "New Americano Perfume", "30 units sold")
         self.add_card_to_layout(quick_stats_layout, "Pending Orders", f"{pending_orders} Orders", "...")
-        self.add_card_to_layout(quick_stats_layout, "Low Stock Alerts", "3 Products", "...")
+        self.add_card_to_layout(quick_stats_layout, "Low Stock Alerts", f"{low_stocks} Products", "...")
 
         card = QFrame()
         card.setObjectName("card")
@@ -322,6 +323,15 @@ class DashboardPage(QWidget):
         # pending_orders = cursor.fetchall()
         # conn.close()
         # return pending_orders
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count
+    def get_low_stocks(self):
+        conn = sqlite3.connect('products.db')
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT COUNT(*) FROM alerts_history
+        """)
         count = cursor.fetchone()[0]
         conn.close()
         return count
