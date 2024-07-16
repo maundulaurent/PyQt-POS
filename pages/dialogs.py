@@ -577,7 +577,7 @@ class AlertsHistoryDialog(QDialog):
 class AlertPopup(QDialog):
     def __init__(self, product, low_alert_level, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(f"Alert for {product}")
+        self.setWindowTitle(f"Low Stock Alert for {product}")
         self.setGeometry(0, 0, 300, 60)
         self.setModal(True)
         self.setWindowFlags(self.windowFlags() | Qt.WindowCloseButtonHint)

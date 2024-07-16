@@ -85,9 +85,6 @@ class ProductManagementPage(QWidget):
         self.btn_add_product.clicked.connect(self.add_new_product)
         self.toolbar_layout.addWidget(self.btn_add_product)
 
-        self.btn_search = QPushButton("Search")
-        self.toolbar_layout.addWidget(self.btn_search)
-
 
         self.edit_product_btn = QPushButton("Edit Product")
         self.edit_product_btn.clicked.connect(self.edit_product)
@@ -96,6 +93,10 @@ class ProductManagementPage(QWidget):
         self.delete_product_btn = QPushButton("Delete Product")
         self.delete_product_btn.clicked.connect(self.delete_product)
         self.toolbar_layout.addWidget(self.delete_product_btn)
+
+        self.btn_search = QPushButton("Search")
+        self.toolbar_layout.addWidget(self.btn_search)
+
 
         # Product list
         self.product_list_layout = QVBoxLayout()
@@ -271,7 +272,7 @@ class AddProductDialog(QDialog):
         layout.addWidget(self.product_name_input)
 
         self.product_price_input = QLineEdit()
-        layout.addWidget(QLabel("Product Price:"))
+        layout.addWidget(QLabel("Product Price:Ksh"))
         layout.addWidget(self.product_price_input)
 
         # Fetch categories dynamically from the database
@@ -281,10 +282,12 @@ class AddProductDialog(QDialog):
         layout.addWidget(self.product_category_input)
 
         self.stock_level_input = QLineEdit()
+        self.stock_level_input.setValidator(QIntValidator(1, 999999))
         layout.addWidget(QLabel("Initial Stock Level:"))
         layout.addWidget(self.stock_level_input)
 
         self.low_alert_level_input = QLineEdit()
+        self.low_alert_level_input.setValidator(QIntValidator(1, 999999))
         layout.addWidget(QLabel("Set Low Stock Alert Level"))
         layout.addWidget(self.low_alert_level_input)
 
