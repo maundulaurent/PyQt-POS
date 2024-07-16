@@ -321,8 +321,9 @@ class DashboardPage(QWidget):
             WHERE amount_received IS NULL
         """)
         # pending_orders = cursor.fetchall()
-        # conn.close()
+        # conn.close()this is for chm
         # return pending_orders
+        # change something
         count = cursor.fetchone()[0]
         conn.close()
         return count
