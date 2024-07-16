@@ -22,46 +22,8 @@ class ProductManagementPage(QWidget):
         self.conn = sqlite3.connect('products.db')
         self.cursor = self.conn.cursor()
         # self.cursor.execute('''ALTER TABLE products ADD COLUMN low_alert_level INTEGER DEFAULT 0;''')
-        # self.cursor.execute('''
-        #     CREATE TABLE IF NOT EXISTS products_new (
-        #         id TEXT PRIMARY KEY, 
-        #         name TEXT, 
-        #         price INTEGER, 
-        #         category_id INTEGER, 
-        #         stock INTEGER CHECK(stock >= 0), 
-        #         low_alert_level INTEGER DEFAULT 0 CHECK(low_alert_level >= 0), 
-        #         FOREIGN KEY (category_id) REFERENCES categories (id)
-        #     )
-        # ''')
-        # self.cursor.execute('''
-        #     INSERT INTO products_new (id, name, price, category_id, stock, low_alert_level)
-        #     SELECT id, name, price, category_id, stock, low_alert_level
-        #     FROM products
-        # ''')
 
-        # self.cursor.execute('DROP TABLE products')
-        # self.cursor.execute('ALTER TABLE products_new RENAME TO products')
-
-
-
-
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS sales_history
-                            (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, cashier TEXT, total_amount REAL, items TEXT, payment_method TEXT)''')
-        
-        # Create a new table for stock history without UNIQUE constraint on product_id
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS stocks_history_new
-                            (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id TEXT, name TEXT, category TEXT, description TEXT, date TEXT)''')
-
-        # Copy data from old table to new table
-        self.cursor.execute('''INSERT INTO stocks_history_new (product_id, name, category, description, date)
-                            SELECT product_id, name, category, description, date FROM stocks_history''')
-
-        # Drop the old table
-        self.cursor.execute('DROP TABLE IF EXISTS stocks_history')
-
-        # Rename the new table to the old table's name
-        self.cursor.execute('ALTER TABLE stocks_history_new RENAME TO stocks_history')
-
+       
         self.conn.commit()
         self.load_products()
 
@@ -126,17 +88,20 @@ class ProductManagementPage(QWidget):
         self.btn_search = QPushButton("Search")
         self.toolbar_layout.addWidget(self.btn_search)
 
-        self.btn_filter = QPushButton("Filter Products")
-        self.toolbar_layout.addWidget(self.btn_filter)
 
-        self.btn_export = QPushButton("Export")
-        self.toolbar_layout.addWidget(self.btn_export)
+        self.edit_product_btn = QPushButton("Edit Product")
+        self.edit_product_btn.clicked.connect(self.edit_product)
+        self.toolbar_layout.addWidget(self.edit_product_btn)
+
+        self.delete_product_btn = QPushButton("Delete Product")
+        self.delete_product_btn.clicked.connect(self.delete_product)
+        self.toolbar_layout.addWidget(self.delete_product_btn)
 
         # Product list
         self.product_list_layout = QVBoxLayout()
         self.content_layout.addLayout(self.product_list_layout)
 
-        self.product_list_layout.addWidget(QLabel("All Products"))
+        self.product_list_layout.addWidget(QLabel("All Products In PeterPOS Database"))
 
         # Initialize table to display products
         self.product_table = QTableWidget()
@@ -152,13 +117,7 @@ class ProductManagementPage(QWidget):
         self.add_stock_button.clicked.connect(self.add_stock_to_product)
         self.product_buttons_layout.addWidget(self.add_stock_button)
 
-        self.edit_product_btn = QPushButton("Edit Product")
-        self.edit_product_btn.clicked.connect(self.edit_product)
-        self.product_buttons_layout.addWidget(self.edit_product_btn)
 
-        self.delete_product_btn = QPushButton("Delete Product")
-        self.delete_product_btn.clicked.connect(self.delete_product)
-        self.product_buttons_layout.addWidget(self.delete_product_btn)
 
         # Stock alerts
         self.stock_alerts_layout = QVBoxLayout()

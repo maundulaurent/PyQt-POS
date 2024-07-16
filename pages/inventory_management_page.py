@@ -73,21 +73,17 @@ class InventoryManagementPage(QWidget):
         self.btn_categories.clicked.connect(self.show_categories)
         self.toolbar_layout.addWidget(self.btn_categories)
 
-        self.btn_add_product = QPushButton("Add New Product")
-        self.btn_add_product.clicked.connect(self.add_new_product)
-        self.toolbar_layout.addWidget(self.btn_add_product)
+        # self.btn_add_product = QPushButton("Add New Product")
+        # self.btn_add_product.clicked.connect(self.add_new_product)
+        # self.toolbar_layout.addWidget(self.btn_add_product)
 
         self.btn_search = QPushButton("Search")
         # self.btn_search.clicked.connect(self.search_products)
         self.toolbar_layout.addWidget(self.btn_search)
 
-        # self.btn_filter = QPushButton("Filter Products")
-        # self.btn_filter.clicked.connect(self.filter_products)
-        # self.toolbar_layout.addWidget(self.btn_filter)
-
-        self.btn_export = QPushButton("Export")
+        # self.btn_export = QPushButton("Export")
         # self.btn_export.clicked.connect(self.export_data)
-        self.toolbar_layout.addWidget(self.btn_export)
+        # self.toolbar_layout.addWidget(self.btn_export)
 
         # Product list
         self.product_list_layout = QVBoxLayout()
@@ -105,12 +101,12 @@ class InventoryManagementPage(QWidget):
         self.product_buttons_layout = QHBoxLayout()
         self.product_list_layout.addLayout(self.product_buttons_layout)
 
-        self.add_product_button = QPushButton("Add a New Product")
-        self.add_product_button.clicked.connect(self.add_new_product)
+        self.add_product_button = QPushButton("Add a New Category")
+        self.add_product_button.clicked.connect(self.show_categories)
         self.product_buttons_layout.addWidget(self.add_product_button)
 
-        self.product_buttons_layout.addWidget(QPushButton("Edit Products"))
-        self.product_buttons_layout.addWidget(QPushButton("Delete Product"))
+        # self.product_buttons_layout.addWidget(QPushButton("POS"))
+        # self.product_buttons_layout.addWidget(QPushButton("POS"))
 
         # Stock alerts
         self.stock_alerts_layout = QVBoxLayout()
@@ -229,7 +225,7 @@ class AddProductDialog(QDialog):
 class ShowCategoriesDialog(QDialog):
     def __init__(self, categories, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Manage Categories")
+        self.setWindowTitle("Add/Edit/Delete Categories")
         self.categories = categories
 
         layout = QVBoxLayout(self)
