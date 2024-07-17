@@ -2,10 +2,10 @@ import sqlite3
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from uifiles.login_ui import Ui_Form
+from uifiles.login_ui import Ui_MainWindow
 from pages.dialogs import AlertManager
 
-class LoginPage(QWidget, Ui_Form):
+class LoginPage(QMainWindow, Ui_MainWindow):
     def __init__(self, switch_to_admin_page, switch_to_dashboard_page):
         super().__init__()
         self.switch_to_admin_page = switch_to_admin_page
@@ -29,8 +29,8 @@ class LoginPage(QWidget, Ui_Form):
         # self.conn.commit()
 
     def init_ui(self):
-        self.pushButton.clicked.connect(self.user_authenticate)
-        self.label_5.clicked.connect(self.admin_authenticate)
+        self.login_button.clicked.connect(self.user_authenticate)
+        self.admin_login_label.clicked.connect(self.admin_authenticate)
 
     def admin_authenticate(self):
         if not self.has_admin:  # Only check if no admin exists
@@ -50,14 +50,14 @@ class LoginPage(QWidget, Ui_Form):
                 
 
     def user_authenticate(self):
-        username = self.lineEdit.text()
-        password = self.lineEdit_2.text()
+        username = self.user_login_input.text()
+        password = self.password_login_input.text()
         self.cursor.execute("SELECT * FROM user WHERE username=? AND password=? AND role='user'", (username, password))
         result = self.cursor.fetchone()
         if result:
             self.switch_to_dashboard_page()
-            self.lineEdit.clear()
-            self.lineEdit_2.clear()
+            self.user_login_input.clear()
+            self.password_login_input.clear()
             self.show_alert_dialog()
         else:
             QMessageBox.warning(self, 'Error', 'Invalid credentials')
