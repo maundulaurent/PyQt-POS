@@ -205,7 +205,7 @@ class DashboardPage(QWidget):
         self.new_sale_layout = QVBoxLayout()
         self.new_sale_frame.setLayout(self.new_sale_layout)
 
-        self.new_sale_button = QPushButton("Categories")
+        self.new_sale_button = QPushButton("Inventory")
         # self.new_sale_button.setAlignment(Qt.AlignCenter)
         self.new_sale_button.setStyleSheet("""
             background: #4e5052;

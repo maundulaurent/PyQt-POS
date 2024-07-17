@@ -4,11 +4,6 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from uifiles.login_ui import Ui_Form
 from pages.dialogs import AlertManager
-from pages.dialogs import AlertManager
-import logging
-
-
-logging.basicConfig(level=logging.DEBUG, filename='app.log', filemode='a', format='%(name)s - %(levelname)s - %(message)s')
 
 class LoginPage(QWidget, Ui_Form):
     def __init__(self, switch_to_admin_page, switch_to_dashboard_page):
@@ -16,65 +11,59 @@ class LoginPage(QWidget, Ui_Form):
         self.switch_to_admin_page = switch_to_admin_page
         self.switch_to_dashboard_page = switch_to_dashboard_page
 
-        try:
-            self.conn = sqlite3.connect('products.db')
-            self.cursor = self.conn.cursor()
-            self.cursor.execute("SELECT COUNT(*) FROM user WHERE role='admin'")
-            self.has_admin = self.cursor.fetchone()[0] > 0 
-        except sqlite3.Error as e:
-            logging.error(f"Database error: {e}")
-            QMessageBox.critical(self, 'Database Error', f"An error occurred: {e}")
-            sys.exit(1)
+        self.conn = sqlite3.connect('products.db')
+        self.cursor = self.conn.cursor()
+        self.cursor.execute("SELECT COUNT(*) FROM user WHERE role='admin'")
+        self.has_admin = self.cursor.fetchone()[0] > 0 
 
+        # self.init_db()
         self.setupUi(self)  # Set up the UI from the generated code
         self.init_ui()
+
+    # def init_db(self):
+    #     self.conn = sqlite3.connect('products.db')
+    #     self.cursor = self.conn.cursor()
+
+        # self.cursor.execute("SELECT COUNT(*) FROM user WHERE role='admin'")
+        # has_admin = self.cursor.fetchone()[0] > 0
+        # self.conn.commit()
 
     def init_ui(self):
         self.pushButton.clicked.connect(self.user_authenticate)
         self.label_5.clicked.connect(self.admin_authenticate)
 
     def admin_authenticate(self):
-        try:
-            if not self.has_admin:
+        if not self.has_admin:  # Only check if no admin exists
+            self.cursor.execute("SELECT COUNT(*) FROM user WHERE role='admin'")
+            self.has_admin = self.cursor.fetchone()[0] > 0
+
+        if self.has_admin:
+            dialog = AdminLoginDialog(self.conn, self.switch_to_admin_page)
+            if dialog.exec_() == QDialog.Accepted:
+                pass
+        else:
+            dialog = AdminSetupDialog(self.conn)
+            if dialog.exec_() == QDialog.Accepted:
+                # Update has_admin after successful setup (optional)
                 self.cursor.execute("SELECT COUNT(*) FROM user WHERE role='admin'")
                 self.has_admin = self.cursor.fetchone()[0] > 0
-
-            if self.has_admin:
-                dialog = AdminLoginDialog(self.conn, self.switch_to_admin_page)
-                if dialog.exec_() == QDialog.Accepted:
-                    pass
-            else:
-                dialog = AdminSetupDialog(self.conn)
-                if dialog.exec_() == QDialog.Accepted:
-                    self.cursor.execute("SELECT COUNT(*) FROM user WHERE role='admin'")
-                    self.has_admin = self.cursor.fetchone()[0] > 0
-        except sqlite3.Error as e:
-            logging.error(f"Database error: {e}")
-            QMessageBox.critical(self, 'Database Error', f"An error occurred: {e}")
+                
 
     def user_authenticate(self):
         username = self.lineEdit.text()
         password = self.lineEdit_2.text()
-        try:
-            self.cursor.execute("SELECT * FROM user WHERE username=? AND password=? AND role='user'", (username, password))
-            result = self.cursor.fetchone()
-            if result:
-                self.switch_to_dashboard_page()
-                self.lineEdit.clear()
-                self.lineEdit_2.clear()
-                self.show_alert_dialog()
-            else:
-                QMessageBox.warning(self, 'Error', 'Invalid credentials')
-        except sqlite3.Error as e:
-            logging.error(f"Database error: {e}")
-            QMessageBox.critical(self, 'Database Error', f"An error occurred: {e}")
+        self.cursor.execute("SELECT * FROM user WHERE username=? AND password=? AND role='user'", (username, password))
+        result = self.cursor.fetchone()
+        if result:
+            self.switch_to_dashboard_page()
+            self.lineEdit.clear()
+            self.lineEdit_2.clear()
+            self.show_alert_dialog()
+        else:
+            QMessageBox.warning(self, 'Error', 'Invalid credentials')
 
     def show_alert_dialog(self):
         alert_manager = AlertManager()
-
-    def closeEvent(self, event):
-        self.conn.close()
-        event.accept()
 # Admin Setup Dialog
 class AdminSetupDialog(QDialog):
     def __init__(self, conn):
