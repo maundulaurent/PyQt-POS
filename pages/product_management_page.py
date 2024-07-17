@@ -321,8 +321,12 @@ class AddProductDialog(QDialog):
         stock_level = self.stock_level_input.text().strip()
         low_alert_level = self.low_alert_level_input.text().strip()
 
-        if product_name == "" or product_price == "" or product_category == "" or low_alert_level == "":
+              # Check if category is empty
+        if product_category == "" and product_name != "" and product_price != "" and low_alert_level != "":
+            QMessageBox.warning(self, "Missing Category Field", "Please select a product category. If none, create a new one in inventory management.")
+        elif product_name == "" or product_price == "" or low_alert_level == "":
             QMessageBox.warning(self, "Incomplete Information", "Please fill in all fields.")
+
         else:
             parent = self.parent()
             if self.product_id is None:

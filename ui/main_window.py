@@ -1,3 +1,4 @@
+
 from PyQt5.QtWidgets import QMainWindow, QStackedWidget, QAction, QLabel, QLineEdit, QToolBar, QWidget, QHBoxLayout, QVBoxLayout, QPushButton
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -13,7 +14,7 @@ from pages.settings_page import SettingsPage
 from pages.admin_page import AdminPage
 from pages.history import HistoryWidget
 from pages.orders import OrdersPage
-
+import os
 import sqlite3
 
 
@@ -21,9 +22,19 @@ class POSSystem(QMainWindow):
     def __init__(self):
         super().__init__()
 
+          # Define database path
+        self.database_path = os.path.join(os.path.dirname(__file__), 'products.db')
+
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(self.database_path), exist_ok=True)
+
         # Initialize database connection
-        self.conn = sqlite3.connect('products.db')
+        self.conn = sqlite3.connect(self.database_path)
         self.init_db()
+
+        # Initialize database connection
+        # self.conn = sqlite3.connect('products.db')
+        # self.init_db()
 
 
         self.setWindowTitle("Peter POS")
@@ -82,6 +93,13 @@ class POSSystem(QMainWindow):
     def init_db(self):
         self.conn = sqlite3.connect('products.db')
         self.cursor = self.conn.cursor()
+
+        # Login table
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS user
+                        (id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                        username TEXT NOT NULL UNIQUE, 
+                        password TEXT NOT NULL,
+                        role TEXT NOT NULL DEFAULT 'user')''')
 
         # products table
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS products

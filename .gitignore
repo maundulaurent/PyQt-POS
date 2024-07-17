@@ -5,3 +5,5 @@ venv/
 build/
 
 dist/
+
+gitpush.py
