@@ -47,6 +47,7 @@ class ProductManagementPage(QWidget):
         nav_label = QLabel("Navigation Menu")
         nav_label.setStyleSheet("color: white; padding: 20px;")
         self.nav_layout.addWidget(nav_label)
+        
         for item in nav_items:
             button = QPushButton(item)
             button.setStyleSheet("""
@@ -62,6 +63,7 @@ class ProductManagementPage(QWidget):
                 }
             """)
             self.nav_layout.addWidget(button)
+        self.nav_layout.addStretch()
 
         # Content layout
         self.content_layout = QVBoxLayout()
